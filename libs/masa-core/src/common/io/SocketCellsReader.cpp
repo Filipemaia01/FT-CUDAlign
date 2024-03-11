@@ -30,10 +30,12 @@
 #include <errno.h>
 #include <netdb.h> //hostent
 
-SocketCellsReader::SocketCellsReader(string hostname, int port) {
+SocketCellsReader::SocketCellsReader(string hostname, int port, string signal_path, string shared_path) {
     this->hostname = hostname;
     this->port = port;
     this->socketfd = -1;
+    this->signal_path = signal_path;
+    this->close_socket_path = shared_path+"/closesocket.txt";
     init();
 }
 
@@ -42,6 +44,7 @@ SocketCellsReader::~SocketCellsReader() {
 }
 
 void SocketCellsReader::close() {
+    sendFinishMessage();
     fprintf(stderr, "SocketCellsReader::close(): %d\n", socketfd);
     if (socketfd != -1) {
         ::close(socketfd);
@@ -53,16 +56,60 @@ int SocketCellsReader::getType() {
 	return INIT_WITH_CUSTOM_DATA;
 }
 
+void SocketCellsReader::sendFinishMessage() {
+    /* This function sends a message to the previous GPU sinalizing the end of it's execution
+    *  The main goal of this is to detect the failure and identifying if it's indeed a failure
+    *  or just the end of the execution
+    */
+    char verification[10]="finished";
+    printf("Sending finished message to the previous GPU\n");
+    send(socketfd, verification, 10, MSG_NOSIGNAL);
+}
+
 int SocketCellsReader::read(cell_t* buf, int len) {
-    int pos = 0;
+    int pos=0, tries=3;//, tentativas = 0;
+    FILE* end_exec_signal; FILE* close_socket;
+    bool signalOk;
+
     while (pos < len*sizeof(cell_t)) {
     	int ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), 0);
+
+    /* This region of the function was created in order to check the return of the recv function.
+    *  If the return is 0, it means that nothing is being sent and, therefore, the socket may have been 
+    *  disconnected. The GPU only blocks, waiting for a reconnection, if the GPU from which it receieves
+    *  it's cells doesn't send any cells and if it hasn't ended it's execution(checks a signal file).
+    */
+        while(ret == 0 && tries > 0) { //if amount of bytes received is zero, most likely the socket has been closed
+            ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), 0);
+            tries --;
+            printf("Trying %d \n", 3-tries);
+            sleep(2);
+        } 
+        if (tries == 0) {
+            end_exec_signal = fopen(this->signal_path.c_str(), "rt"); //file created when previous GPU finishes it's execution
+            close_socket = fopen(this->close_socket_path.c_str(), "rt"); //file create when previous GPU closes socket connection
+
+            signalOk = false;
+            if (end_exec_signal!=NULL) {
+                signalOk = true;
+                fclose(end_exec_signal);
+            }
+            else if(close_socket!=NULL) {
+                signalOk = true;
+                fclose(close_socket);
+            }
+            if(!signalOk) {
+                printf("Connection Lost!\n");
+                ::close(socketfd);
+                break;
+            }
+        }
         if (ret == -1) {
-        	close();
+        	::close(socketfd);
             fprintf(stderr, "recv: Socket error -1\n");
             break;
         }
-        pos += ret;
+        pos += ret; 
     }
     return pos/sizeof(cell_t);
 }
@@ -76,7 +123,6 @@ int SocketCellsReader::readInt(global_score_t* score) {
 
     return ret;
 }
-
 
 void SocketCellsReader::init() {
     int rc;

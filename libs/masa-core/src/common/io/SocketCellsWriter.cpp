@@ -32,7 +32,8 @@
 
 #define DEBUG (0)
 
-SocketCellsWriter::SocketCellsWriter(string hostname, int port) {
+SocketCellsWriter::SocketCellsWriter(string hostname, int port, string shared_path) {
+    this->close_socket_path = shared_path+"/closesocket.txt";
     this->hostname = hostname;
     this->port = port;
     this->socketfd = -1;
@@ -44,6 +45,10 @@ SocketCellsWriter::~SocketCellsWriter() {
 }
 
 void SocketCellsWriter::close() {
+    waitForFinishMessage();
+    FILE* close_socket;
+    close_socket = fopen(close_socket_path.c_str(), "wb");
+    fclose(close_socket);
     fprintf(stderr, "SocketCellsWriter::close(): %d\n", socketfd);
     if (socketfd != -1) {
         ::close(socketfd);
@@ -51,11 +56,72 @@ void SocketCellsWriter::close() {
     }
 }
 
+int SocketCellsWriter::isopen(int socket) {
+    struct timeval waiting_time; waiting_time.tv_usec = 1;
+    int bytes_in_buffer = 0, ret_select;
+
+    fd_set write_descriptor; //stores amount of descriptors to be analyzed
+    FD_ZERO(&write_descriptor); //0 bits -> 0 file descriptors
+    FD_SET(socket, &write_descriptor); //sets 1 bit for the write_descriptor
+    ret_select=select(socket+1, 0, &write_descriptor, 0, &waiting_time); //check write connection
+    //printf("ret_select=%d\n", ret_select);
+    return ret_select;
+}
+
+void SocketCellsWriter::waitForFinishMessage() {   
+    /* This function waits for the next GPU to finish it's execution and send a "finished" message
+    *  or for it's disconnection. Only after that the socket can be closed. The goal is to keep
+    *  detecting the failure, even after this GPU finishes it's execution.
+    */ 
+    char verification[10]="waiting";
+    int qtd_bytes, tries=3;
+  
+    printf("Finished sending cells!\n");
+    printf("Waiting for the next GPU to finish it's execution...\n");
+    while(strcmp(verification,"finished")!=0) {
+        qtd_bytes = recv(socketfd, verification, 10, 0);
+        while(qtd_bytes == 0 && tries > 0) { //tries 3 times, just in case that is not a disconnection, but the system just too slow
+            qtd_bytes = recv(socketfd, verification, 10, 0);
+            tries--;
+            sleep(2);
+            printf("Trying %d \n", 3-tries);
+        } 
+        if (tries == 0) {
+            printf("~~~~Connection Lost!~~~~\n");
+            printf("Sending errormessage to the Controller\n");
+            break;
+        }
+    }
+    printf("GPU n+1 has finished! Deleting Connection...\n");
+}
+
 int SocketCellsWriter::write(const cell_t* buf, int len) {
-    int ret = send(socketfd, buf, len*sizeof(cell_t), 0);
-    if (ret == -1) {
-        fprintf(stderr, "send: Socket error: -1\n");
-        return 0;
+    int tries=3, ret;
+
+    /* This function was modified in order to detect a fail on the receiever GPU. In order to do this,
+    *  the return of the send is verified. If it is -1 (the flag errno also raises), it means that the
+    *  socket has disconnected. The problem is that the -1 return only happens after the third try.
+    *  Because of this property, the function isopen checks if the connection is available to write.
+    *  If isopen or ret=-1 are identified, the tries is decremented untilsend comes back to normal or
+    *  the 3 tries are over.
+    */
+
+    ret = -1;
+    while(ret==-1 && tries > 0) { //Checks if socket is closed for 3 times in order to check if connection is just slow
+        if (isopen(socketfd)>0) {
+            ret = send(socketfd, buf, len*sizeof(cell_t), MSG_NOSIGNAL);
+            if(ret==-1) perror("send");
+        }
+        if (ret==-1) {
+            printf("Trying %d \n", 3-tries);
+            perror("isopen or send");
+            tries--;
+            sleep(2);
+        }
+    } 
+    if (tries == 0) {
+        printf("Connection Lost!\n");
+        ::close(socketfd);
     }
     return ret;
 }

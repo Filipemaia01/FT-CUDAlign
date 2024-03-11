@@ -182,8 +182,10 @@ static void getBorderCells(Job* job, SpecialRowsPartition* sraPartition,
 //		firstRow->seek(job->getSequence(1)->getTrimStart() - job->getSequence(1)->getModifiers()->getTrimStart());
 //	}
 
+	string shared_path = job->getSharedPath();
+
 	if (job->flush_column_url.size() > 0) {
-		CellsWriter* writer = new URLCellsWriter(job->flush_column_url);
+		CellsWriter* writer = new URLCellsWriter(job->flush_column_url, shared_path);
 		BufferedCellsWriter* tmp = new BufferedCellsWriter(writer, job->getBufferLimit());
 		tmp->setLogFile(job->outputBufferLogFile, 10.0f);
 		lastColumn = tmp;
@@ -192,7 +194,10 @@ static void getBorderCells(Job* job, SpecialRowsPartition* sraPartition,
 	if (job->load_column_url.size() > 0) {
 		if (firstColumn != NULL) delete firstColumn;
 
-		CellsReader* reader = new URLCellsReader(job->load_column_url);
+		int id0 = job->getAlignmentParams()->getSequence(1)->getTrimStart()-1;
+		string signal_path = job->getAlignerPool()->getMsgFile("stage1", id0) + ".signal";
+
+		CellsReader* reader = new URLCellsReader(job->load_column_url, signal_path, shared_path);
 		int limit = job->getBufferLimit();
 		if (job->getPoolWaitId() >= 0) {
 			limit = job->getSequence(0)->getLen();
@@ -537,9 +542,12 @@ int stage1(Job* job) {
 		delete blocksFile;
 		blocksFile = NULL;
 	}
-	//	if (firstColumn != NULL) {
-	//		delete firstColumn;
-	//	}
+
+	printf(">>>>> Deleting firstColumn: %p\n", firstColumn);
+	if (firstColumn != NULL) {
+		delete firstColumn;
+	}
+
 	printf(">>>>> Deleting lastColumn: %p\n", lastColumn);
 	if (lastColumn != NULL) {
 		delete lastColumn;

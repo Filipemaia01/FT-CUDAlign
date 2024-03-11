@@ -102,6 +102,7 @@ public:
 	void setWorkPath(string workPath);
 	void setSpecialRowsPath(string specialRowsPath);
 	void setSharedPath(string sharedPath);
+	string getSharedPath();
 	string getWorkPath();
 	int initialize();
 

@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-URLCellsWriter::URLCellsWriter(string url) {
+URLCellsWriter::URLCellsWriter(string url, string shared_path) {
 	int pos1 = url.find_first_of("://");
 	if (pos1 == -1) {
 		fprintf(stderr, "URLCellsWriter: Wrong URL format: %s\n", url.c_str());
@@ -49,7 +49,7 @@ URLCellsWriter::URLCellsWriter(string url) {
 		} else {
 			hostname = param;
 		}
-		writer = new SocketCellsWriter(hostname, port);
+		writer = new SocketCellsWriter(hostname, port, shared_path);
 	} else if (type == "file") {
 		writer = new FileCellsWriter(param);
 	} else if (type == "null") {

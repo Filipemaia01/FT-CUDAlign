@@ -315,6 +315,9 @@ string Job::getAlignmentTextFile(int id) {
 	return str;
 }
 
+string Job::getSharedPath() {
+	return this->pool_shared_path;
+}
 
 string Job::getWorkPath() {
     return this->work_path;

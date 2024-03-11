@@ -58,6 +58,7 @@ public:
 	virtual bool isLastNode();
 	const score_t& getBestNodeScore() const;
 	void setBestNodeScore(const score_t& bestLocalScore);
+	string getMsgFile(string prefix, int id, int count=-1);
 
 private:
 	string sharedPath;
@@ -67,7 +68,6 @@ private:
 	int crosspointIdRecvCounter;
 	score_t bestNodeScore;
 
-	string getMsgFile(string prefix, int id, int count=-1);
 	string getSignalFile(string msgFile);
 	void sendSignal(string msgFile);
 	void waitSignal(string msgFile);

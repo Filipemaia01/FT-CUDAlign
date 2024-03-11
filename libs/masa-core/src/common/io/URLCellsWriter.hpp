@@ -28,7 +28,7 @@ using namespace std;
 
 class URLCellsWriter: public CellsWriter {
 public:
-	URLCellsWriter(string url);
+	URLCellsWriter(string url, string shared_path);
 	virtual ~URLCellsWriter();
 	virtual void close();
 
