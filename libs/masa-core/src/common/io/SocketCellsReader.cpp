@@ -36,6 +36,7 @@ SocketCellsReader::SocketCellsReader(string hostname, int port, string signal_pa
     this->socketfd = -1;
     this->signal_path = signal_path;
     this->close_socket_path = shared_path+"/closesocket.txt";
+    this->failure_signal_path = shared_path+"/failure.txt";
     init();
 }
 
@@ -54,6 +55,17 @@ void SocketCellsReader::close() {
 
 int SocketCellsReader::getType() {
 	return INIT_WITH_CUSTOM_DATA;
+}
+
+void SocketCellsReader::failureSignal() {
+    FILE* fd_failure;
+
+    if(access(failure_signal_path.c_str(), F_OK)!=0) {
+        printf("Failure Signal Sent!\n");
+        fd_failure = fopen(failure_signal_path.c_str(), "wb");
+        //TODO: write the number of the failed GPU
+        fclose(fd_failure);
+    }
 }
 
 void SocketCellsReader::sendFinishMessage() {
@@ -101,6 +113,7 @@ int SocketCellsReader::read(cell_t* buf, int len) {
             if(!signalOk) {
                 printf("Connection Lost!\n");
                 ::close(socketfd);
+                failureSignal();
                 break;
             }
         }
@@ -143,7 +156,6 @@ void SocketCellsReader::init() {
         fprintf(stderr, "FATAL: cannot resolve hostname: %s\n", hostname.c_str());
         exit(-1);
 	}
-
     /* Construct the server address structure */
     memset(&echoServAddr, 0, sizeof(echoServAddr));     /* Zero out structure */
     echoServAddr.sin_family      = AF_INET;             /* Internet address family */

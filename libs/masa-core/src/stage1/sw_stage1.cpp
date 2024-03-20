@@ -352,14 +352,11 @@ int stage1(Job* job) {
     	    pthread_create(&thr, NULL, shareScore, (void *) NULL);
         }
     }
-
 	Sequence* seq_vertical = new Sequence(job->getAlignmentParams()->getSequence(0));
 	Sequence* seq_horizontal = new Sequence(job->getAlignmentParams()->getSequence(1));
-
 	aligner = job->aligner;
 	const score_params_t* score_params = aligner->getScoreParameters();
 	AlignerManager* sw = new AlignerManager(aligner);
-
 	if (job->split == 1)
 		sw->setmustSplit(true);
 
@@ -373,7 +370,6 @@ int stage1(Job* job) {
 	int ev_end = timer.createEvent("END");
 	
 	timer.init();
-
 //	int i0 = seq_vertical->getModifiers()->getTrimStart()-1;
 //	int i1 = seq_vertical->getModifiers()->getTrimEnd();
 //	int j0 = seq_horizontal->getModifiers()->getTrimStart()-1;
@@ -383,10 +379,8 @@ int stage1(Job* job) {
 	int ii1 = seq_vertical->getModifiers()->getTrimEnd();
 	int jj0 = seq_horizontal->getModifiers()->getTrimStart()-1;
 	int jj1 = seq_horizontal->getModifiers()->getTrimEnd();
-
 	Partition superPartition = Partition(ii0, jj0, ii1, jj1);
 	sw->setSuperPartition(superPartition);
-
 	int i0 = seq_vertical->getTrimStart()-1;
 	int i1 = seq_vertical->getTrimEnd();
 	int j0 = seq_horizontal->getTrimStart()-1;
@@ -433,9 +427,7 @@ int stage1(Job* job) {
 
 
 	score_t minScore = getInitialBestScore(job->alignment_start, job->alignment_end);
-
 	bestScoreList = new BestScoreList(job->max_alignments, minScore.score, seq0_len, seq1_len, score_params);
-
 	status = new Status(job->getWorkPath(), bestScoreList);
 	if (!status->isEmpty()) {
 		//bestScore = bestScoreList->getBestScore();

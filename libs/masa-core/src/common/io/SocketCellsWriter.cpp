@@ -34,6 +34,7 @@
 
 SocketCellsWriter::SocketCellsWriter(string hostname, int port, string shared_path) {
     this->close_socket_path = shared_path+"/closesocket.txt";
+    this->failure_signal_path = shared_path+"/failure.txt";
     this->hostname = hostname;
     this->port = port;
     this->socketfd = -1;
@@ -95,6 +96,17 @@ void SocketCellsWriter::waitForFinishMessage() {
     printf("GPU n+1 has finished! Deleting Connection...\n");
 }
 
+void SocketCellsWriter::failureSignal() {
+    FILE* fd_failure;
+
+    if(access(failure_signal_path.c_str(), F_OK)!=0) {
+        printf("Failure Signal Sent!\n");
+        fd_failure = fopen(failure_signal_path.c_str(), "wb");
+        //TODO: write the number of the failed GPU
+        fclose(fd_failure);
+    }
+}
+
 int SocketCellsWriter::write(const cell_t* buf, int len) {
     int tries=3, ret;
 
@@ -122,6 +134,7 @@ int SocketCellsWriter::write(const cell_t* buf, int len) {
     if (tries == 0) {
         printf("Connection Lost!\n");
         ::close(socketfd);
+        failureSignal();
     }
     return ret;
 }

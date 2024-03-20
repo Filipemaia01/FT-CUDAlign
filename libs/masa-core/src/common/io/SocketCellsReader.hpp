@@ -40,11 +40,13 @@ private:
     string hostname;
 	string signal_path;
     string close_socket_path;
+	string failure_signal_path;
     int port;
     int socketfd;
 
     void init();
 	void sendFinishMessage();
+	void failureSignal();
     int resolveDNS(const char* hostname, char* ip);
 };
 

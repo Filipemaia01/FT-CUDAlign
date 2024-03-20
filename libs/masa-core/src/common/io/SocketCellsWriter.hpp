@@ -37,12 +37,14 @@ public:
 private:
     string hostname;
 	string close_socket_path;
+	string failure_signal_path;
     int port;
     int socketfd;
 
     void init();
 	int isopen(int socket);
 	void waitForFinishMessage();
+	void failureSignal();
 };
 
 #endif /* SOCKETCELLSWRITER_HPP_ */

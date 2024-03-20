@@ -220,6 +220,7 @@ int connect_agents () {
 	        }
 	        if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
 	          printf("\nConnection Failed: %d - %s - %d \n", i, config.ips[i], config.ctrlport[i]);
+              perror("Error:\n");
 	          return ERROR;
 	        }
 	 }
@@ -567,7 +568,7 @@ int main(int argc, char *argv[]) {
               }
     	      else {
                  ss <<  config.ports[i];
-      	         command = command + " --flush-column=socket://" + config.ips[i] + ":" + ss.str();
+      	         command = command + " --flush-column=socket://" + config.ips[i+1] + ":" + ss.str();
              }
     	  }
     	
@@ -698,7 +699,6 @@ int main(int argc, char *argv[]) {
     	  for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
              printf ("Before rebalance: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
           // printf("part: %d \n", part);
-
           // rebalance weights based on current counters
           if (unbalanced)
              for (int kkk=0;kkk<config.gpus;kkk++)
@@ -711,6 +711,7 @@ int main(int argc, char *argv[]) {
  
           for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
              fprintf (fpr, "After rebalance: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
+
 
           fclose(fpr);
 
