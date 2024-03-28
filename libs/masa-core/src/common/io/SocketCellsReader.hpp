@@ -47,6 +47,7 @@ private:
     void init();
 	void sendFinishMessage();
 	void failureSignal();
+	void removeOldFiles();
     int resolveDNS(const char* hostname, char* ip);
 };
 

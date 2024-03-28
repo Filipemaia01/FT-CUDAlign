@@ -90,6 +90,8 @@ void SocketCellsWriter::waitForFinishMessage() {
         if (tries == 0) {
             printf("~~~~Connection Lost!~~~~\n");
             printf("Sending errormessage to the Controller\n");
+            ::close(socketfd);
+            failureSignal();
             break;
         }
     }
@@ -125,9 +127,9 @@ int SocketCellsWriter::write(const cell_t* buf, int len) {
             if(ret==-1) perror("send");
         }
         if (ret==-1) {
+            tries--;
             printf("Trying %d \n", 3-tries);
             perror("isopen or send");
-            tries--;
             sleep(2);
         }
     } 

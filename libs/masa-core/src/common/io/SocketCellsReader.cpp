@@ -37,11 +37,18 @@ SocketCellsReader::SocketCellsReader(string hostname, int port, string signal_pa
     this->signal_path = signal_path;
     this->close_socket_path = shared_path+"/closesocket.txt";
     this->failure_signal_path = shared_path+"/failure.txt";
+    removeOldFiles();
     init();
 }
 
 SocketCellsReader::~SocketCellsReader() {
 	close();
+}
+
+void SocketCellsReader::removeOldFiles() {
+    remove(signal_path.c_str());
+    remove(close_socket_path.c_str());
+    remove(failure_signal_path.c_str());
 }
 
 void SocketCellsReader::close() {
@@ -92,7 +99,7 @@ int SocketCellsReader::read(cell_t* buf, int len) {
     *  it's cells doesn't send any cells and if it hasn't ended it's execution(checks a signal file).
     */
         while(ret == 0 && tries > 0) { //if amount of bytes received is zero, most likely the socket has been closed
-            ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), 0);
+            ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), MSG_NOSIGNAL);
             tries --;
             printf("Trying %d \n", 3-tries);
             sleep(2);
