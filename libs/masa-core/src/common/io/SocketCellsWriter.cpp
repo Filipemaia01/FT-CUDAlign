@@ -99,7 +99,7 @@ void SocketCellsWriter::waitForFinishMessage() {
 void SocketCellsWriter::failureSignal() {
     FILE* fd_failure;
 
-    if(access(failure_signal_path.c_str(), F_OK)!=0) {
+    if(access(failure_signal_path.c_str(), F_OK)!=0) { //failure file was not created
         printf("Failure Signal Sent!\n");
         fd_failure = fopen(failure_signal_path.c_str(), "wb");
         //TODO: write the number of the failed GPU

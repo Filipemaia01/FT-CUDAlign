@@ -553,7 +553,7 @@ int main(int argc, char const *argv[])
     	    system(new_command);
             //string filename2;
             if (DEBUG) printf ("\n\n *** numpart: %d, numgpus: %d,  mod: %d \n", numpart, numgpus, numpart%numgpus);
-            if ((numpart % numgpus) == 0) {
+            if ((numpart % numgpus) == 0) { //last GPU
                np.str("");
                np.clear();
                np << numpart;

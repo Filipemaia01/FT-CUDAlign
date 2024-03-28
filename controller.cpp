@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <bits/stdc++.h> 
 // #include <seqan/alignment_free.h>
@@ -324,7 +325,25 @@ float readlastline(string filename)
 
 }
 
+void killcudalign() {
+    int i;
+    char kill_comand[50], myIP[15] = "192.168.0.88"; //TODO: identify this GPU's IP and hostname of each GPU
 
+    for (i=0; i<config.gpus; i++) {
+        if (strcmp(config.ips[i], myIP)) {
+            strcpy(kill_comand, "ssh laicoadm@");
+            strcat(kill_comand, config.ips[i]);
+            strcat(kill_comand, " pkill cudalign");
+        }
+        else {
+            strcpy(kill_comand, "pkill cudalign");
+        }
+        
+        //printf("Kill comand: %s\n", kill_comand);
+        system(kill_comand);
+        strcpy(kill_comand, "");
+    }
+}
 
 void initSocketWrite() {
      int rc;
@@ -390,7 +409,6 @@ void initSocketWrite() {
      socketfdwrite = clntSock;
  }
 
-
 int main(int argc, char *argv[]) {
 
     std::ostringstream ss, ss2;
@@ -398,6 +416,7 @@ int main(int argc, char *argv[]) {
 
     int ret;
     int vgpu;
+    int qtd_bytes=0, ret_access=-1;
     long long int sum = 0;
     long long int sumcheck = 0;
     int part;
@@ -408,6 +427,11 @@ int main(int argc, char *argv[]) {
 
     char WORKDIR[100];
     strcpy (WORKDIR,argv[2]);
+
+    char failure_path[200];
+    strcpy(failure_path, WORKDIR);
+    strcat(failure_path, "/share/failure.txt");
+    printf("@F: failure path: %s\n", failure_path);
 
     char recmessage[10] = {0};
 
@@ -623,9 +647,21 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates performance counters can be read
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-    	  //while (valread ==0) {
-              memset(recmessage, 0, sizeof(recmessage));
-              valread = read(socketfdwrite, recmessage, 4);
+          while (qtd_bytes == 0 && ret_access!=0) {
+            ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
+            ret_access = access(failure_path, F_OK);
+            usleep(100);
+          }
+          
+          //while (valread ==0) {
+          if(ret_access==0) {
+              printf("###Failure detected. Killing all instances of CUDAlign###\n");
+              killcudalign();
+          }
+          else {
+            memset(recmessage, 0, sizeof(recmessage));
+            valread = read(socketfdwrite, recmessage, 4);
+          }
           // }
                     
           
