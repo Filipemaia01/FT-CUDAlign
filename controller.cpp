@@ -71,6 +71,7 @@ int socketfdwrite;
 int dyn;
 int comma; 
 int gflops = 0;
+char failure_path[200];
 
 int read_int_from_config_line(char* config_line) {
     char prm_name[MAX_CONFIG_VARIABLE_LEN];
@@ -78,7 +79,6 @@ int read_int_from_config_line(char* config_line) {
     sscanf(config_line, "%s %d\n", prm_name, &val);
     return val;
 }
-
 
 void read_str_from_config_line(char* config_line, int op) {
 
@@ -120,7 +120,6 @@ void read_str_from_config_line(char* config_line, int op) {
               config.split[t]=1;
     }
 }
-
 
 int read_config_file(char* config_filename) {
     FILE *fp;
@@ -345,6 +344,27 @@ void killcudalign() {
     }
 }
 
+void detectfailure() {
+    int qtd_bytes=0, ret_access=-1, valread=0;
+    char recmessage[10] = {0};
+
+    while (qtd_bytes == 0 && ret_access!=0) {
+        ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
+        ret_access = access(failure_path, F_OK);
+        usleep(100);
+    }
+
+    if(ret_access==0) {
+        printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
+        killcudalign();
+    }
+    else {
+        memset(recmessage, 0, sizeof(recmessage));
+        valread = read(socketfdwrite, recmessage, 4);
+        printf ("\n ### Controller: balancer message received: %d - %s.\n\n", valread, recmessage);
+    }
+}
+
 void initSocketWrite() {
      int rc;
      int servSock;                    /* Socket descriptor for server */
@@ -428,7 +448,6 @@ int main(int argc, char *argv[]) {
     char WORKDIR[100];
     strcpy (WORKDIR,argv[2]);
 
-    char failure_path[200];
     strcpy(failure_path, WORKDIR);
     strcat(failure_path, "/share/failure.txt");
     printf("@F: failure path: %s\n", failure_path);
@@ -647,28 +666,7 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates performance counters can be read
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-          qtd_bytes=0; ret_access=-1;
-          while (qtd_bytes == 0 && ret_access!=0) {
-            ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
-            ret_access = access(failure_path, F_OK);
-            usleep(100);
-          }
-          
-          //while (valread ==0) {
-          if(ret_access==0) {
-              printf("### Failure detected. Killing all instances of CUDAlign ###\n");
-              killcudalign();
-          }
-          else {
-            memset(recmessage, 0, sizeof(recmessage));
-            valread = read(socketfdwrite, recmessage, 4);
-            printf ("\n ### Controller: balancer message received: %d - %s.\n\n", valread, recmessage);
-          }
-          // }
-                    
-          
-          memset(recmessage, 0, sizeof(recmessage));
-          valread=0;
+          detectfailure();
 
           //for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
           //   printf ("Original: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
@@ -755,24 +753,7 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates last GPU finished its job
           printf ("\n ### Controller: waiting for balancer END message. \n");
 
-          qtd_bytes=0;ret_access=-1;
-          while (qtd_bytes == 0 && ret_access!=0) {
-            ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
-            ret_access = access(failure_path, F_OK);
-            usleep(100);
-          }
-          
-          //while (valread ==0) {
-          if(ret_access==0) {
-              printf("### Failure detected. Killing all instances of CUDAlign ###\n");
-              killcudalign();
-          }
-          else {
-            memset(recmessage, 0, sizeof(recmessage));
-            valread = read(socketfdwrite, recmessage, 4);
-            printf ("\n ### Controller: balancer message received: %s.\n\n", recmessage);
-          }
-
+          detectfailure ();
           //sleep(10);
 
         }
@@ -783,45 +764,12 @@ int main(int argc, char *argv[]) {
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-    qtd_bytes=0;ret_access=-1;
-    while (qtd_bytes == 0 && ret_access!=0) {
-        ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
-        ret_access = access(failure_path, F_OK);
-        usleep(100);
-        }
-    if(ret_access==0) {
-        printf("### Failure detected. Killing all instances of CUDAlign ###\n");
-        killcudalign();
-    }
-    else {
-        valread=0;
-        memset(recmessage, 0, sizeof(recmessage));
-        valread = read(socketfdwrite, recmessage, 4);
-        printf ("\n ### Controller: balancer message received: %s.\n\n", recmessage);
-    }
-
-
-  
+    detectfailure();  
     
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer END message. \n");
 
-    qtd_bytes=0;ret_access=-1;
-    while (qtd_bytes == 0 && ret_access!=0) {
-        ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
-        ret_access = access(failure_path, F_OK);
-        usleep(100);
-        }
-    if(ret_access==0) {
-        printf("### Failure detected. Killing all instances of CUDAlign ###\n");
-        killcudalign();
-    }
-    else {
-        valread=0;
-        memset(recmessage, 0, sizeof(recmessage));
-        valread = read(socketfdwrite, recmessage, 4);
-        printf ("\n ### Controller: balancer message received: %s.\n\n", recmessage);
-    }
+    detectfailure();
 
     fflush(stdout);
 

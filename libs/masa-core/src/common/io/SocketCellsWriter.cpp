@@ -80,9 +80,9 @@ void SocketCellsWriter::waitForFinishMessage() {
     printf("Finished sending cells!\n");
     printf("Waiting for the next GPU to finish it's execution...\n");
     while(strcmp(verification,"finished")!=0) {
-        qtd_bytes = recv(socketfd, verification, 10, 0);
+        qtd_bytes = recv(socketfd, verification, 10, MSG_NOSIGNAL);
         while(qtd_bytes == 0 && tries > 0) { //tries 3 times, just in case that is not a disconnection, but the system just too slow
-            qtd_bytes = recv(socketfd, verification, 10, 0);
+            qtd_bytes = recv(socketfd, verification, 10, MSG_NOSIGNAL);
             tries--;
             sleep(2);
             printf("Trying %d \n", 3-tries);
