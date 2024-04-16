@@ -199,6 +199,29 @@ int read_config_file(char* config_filename) {
     return EXIT_SUCCESS;
 }
 
+void update_config_info(int* i) {
+    int j;
+
+    printf("Could not connect to server %d\n", *i);
+    for(j=*i; j<config.gpus-1; j++) {
+        config.sock[j] = config.sock[j+1];
+        printf("sock[%d]: %d\n", j, config.sock[j]);
+        strcpy(config.ips[j], config.ips[j+1]);
+        printf("ip[%d]: %s\n", j, config.ips[j]);
+        config.ctrlport [j] = config.ctrlport[j+1];
+        printf("ctrlport[%d]: %d\n", j, config.ctrlport[j]);
+        strcpy(config.ports[j], config.ports[j+1]);
+        printf("ports[%d]: %s\n", j, config.ports[j]);
+        config.gpu_number[j] = config.gpu_number[j+1];
+        printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
+        config.split[j] = config.split[j+1];
+        printf("split[%d]: %d\n", j, config.split[j]); 
+    }
+    dyn--;
+    config.gpus--;
+    *i = *i-1;
+}
+
 int connect_agents () {
 
 	struct sockaddr_in agent_addr;
@@ -238,24 +261,7 @@ int connect_agents () {
             }
         }        
         if (!ok) {
-            printf("Could not connect to server %d\n", i);
-            for(j=i; j<config.gpus-1; j++) {
-                config.sock[j] = config.sock[j+1];
-                printf("sock[%d]: %d\n", j, config.sock[j]);
-                strcpy(config.ips[j], config.ips[j+1]);
-                printf("ip[%d]: %s\n", j, config.ips[j]);
-                config.ctrlport [j] = config.ctrlport[j+1];
-                printf("ctrlport[%d]: %d\n", j, config.ctrlport[j]);
-                strcpy(config.ports[j], config.ports[j+1]);
-                printf("ports[%d]: %s\n", j, config.ports[j]);
-                config.gpu_number[j] = config.gpu_number[j+1];
-                printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
-                config.split[j] = config.split[j+1];
-                printf("split[%d]: %d\n", j, config.split[j]); 
-            }
-            dyn--;
-            config.gpus--;
-            i--;
+            update_configfile_info(&i);
         }
         retries = 0;
         ok = 0;
