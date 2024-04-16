@@ -202,28 +202,66 @@ int read_config_file(char* config_filename) {
 int connect_agents () {
 
 	struct sockaddr_in agent_addr;
+    int i, j, max_retries=3, retries=0, ok=0;
 
-        printf("\n ### Controller: connecting balancers... \n");
+    printf("\n ### Controller: connecting balancers... \n");
 
-	for (int i=0; i<config.gpus; i++) {
-	        config.ctrlport[i] = BASEPORT + config.gpu_number[i];
-	        if ((config.sock[i] = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-	          printf("\n Socket creation error \n");
-	          return ERROR;
-	        }
-	        memset(&agent_addr, '0', sizeof(agent_addr));
-	        agent_addr.sin_family = AF_INET;
-                agent_addr.sin_port = htons(config.ctrlport[i]);
-	        if(inet_pton(PF_INET, config.ips[i], &agent_addr.sin_addr)<=0) {
-	          printf("\nInvalid address/ Address not supported \n");
-	          return ERROR;
-	        }
-	        if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
-	          printf("\nConnection Failed: %d - %s - %d \n", i, config.ips[i], config.ctrlport[i]);
-              perror("Error:\n");
-	          return ERROR;
-	        }
-	 }
+
+    for (i=0; i<config.gpus; i++) {
+        config.ctrlport[i] = BASEPORT + config.gpu_number[i];
+        if ((config.sock[i] = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+            printf("\n Socket creation error \n");
+            return ERROR;
+        }
+        printf("sock[%d]: %d\n", i, config.sock[i]);
+        printf("ctrlport[%d]: %d\n", i, config.ctrlport[i]);
+    }
+
+    for (i=0; i<config.gpus; i++) {
+        memset(&agent_addr, '0', sizeof(agent_addr));
+        agent_addr.sin_family = AF_INET;
+        agent_addr.sin_port = htons(config.ctrlport[i]);
+        if(inet_pton(PF_INET, config.ips[i], &agent_addr.sin_addr)<=0) {
+            printf("\nInvalid address/ Address not supported \n");
+            return ERROR;
+        }
+
+        while(retries < max_retries && !ok) {
+            if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
+                retries++;
+ 			    fprintf(stderr, "ERROR connecting to Server [Retry %d/%d]. %s\n",retries, max_retries, strerror(errno));
+			    sleep(3);
+            }
+            else {
+                ok = 1;
+                printf("Connected to server %d\n", i);
+            }
+        }        
+        if (!ok) {
+            printf("Could not connect to server %d\n", i);
+            for(j=i; j<config.gpus-1; j++) {
+                config.sock[j] = config.sock[j+1];
+                printf("sock[%d]: %d\n", j, config.sock[j]);
+                strcpy(config.ips[j], config.ips[j+1]);
+                printf("ip[%d]: %s\n", j, config.ips[j]);
+                config.ctrlport [j] = config.ctrlport[j+1];
+                printf("ctrlport[%d]: %d\n", j, config.ctrlport[j]);
+                strcpy(config.ports[j], config.ports[j+1]);
+                printf("ports[%d]: %s\n", j, config.ports[j]);
+                config.gpu_number[j] = config.gpu_number[j+1];
+                printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
+                config.split[j] = config.split[j+1];
+                printf("split[%d]: %d\n", j, config.split[j]); 
+            }
+            dyn--;
+            config.gpus--;
+            i--;
+        }
+        retries = 0;
+        ok = 0;
+	}
+    printf("Amount of connected gpus: %d\n", config.gpus);
+
    return EXIT_SUCCESS;
 }
 
@@ -488,14 +526,15 @@ int main(int argc, char *argv[]) {
        }    
     }
 
-    vgpu = config.gpus*(config.breakpoints+1);
-
     // Connect balancer sockets
     if (connect_agents () < 0) {
     	//return ERROR;
         printf ("### Controller: sockect connection error \n");
         return ERROR;
-    }   
+    }
+
+    vgpu = config.gpus*(config.breakpoints+1);
+
     // initial weigth distribution: even
     for (int j=0; j< vgpu; j++) {
         if (config.gpus < 16)
