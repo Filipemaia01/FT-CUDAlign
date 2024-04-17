@@ -261,7 +261,7 @@ int connect_agents () {
             }
         }        
         if (!ok) {
-            update_configfile_info(&i);
+            update_config_info(&i);
         }
         retries = 0;
         ok = 0;
