@@ -101,7 +101,7 @@ int SocketCellsReader::read(cell_t* buf, int len) {
         while(ret == 0 && tries > 0) { //if amount of bytes received is zero, most likely the socket has been closed
             ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), MSG_NOSIGNAL);
             tries --;
-            printf("Trying %d \n", 3-tries);
+            printf("SCR: Trying %d \n", 3-tries);
             sleep(2);
         } 
         if (tries == 0) {

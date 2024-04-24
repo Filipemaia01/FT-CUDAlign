@@ -128,7 +128,7 @@ int SocketCellsWriter::write(const cell_t* buf, int len) {
         }
         if (ret==-1) {
             tries--;
-            printf("Trying %d \n", 3-tries);
+            printf("SCW: Trying %d \n", 3-tries);
             perror("isopen or send");
             sleep(2);
         }

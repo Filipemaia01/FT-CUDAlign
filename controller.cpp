@@ -214,7 +214,7 @@ void update_config_info(int* i) {
         printf("ports[%d]: %s\n", j, config.ports[j]);
         config.gpu_number[j] = config.gpu_number[j+1];
         printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
-        config.split[j] = config.split[j+1];
+        config.split[j] = 50;
         printf("split[%d]: %d\n", j, config.split[j]); 
     }
     dyn--;
@@ -250,6 +250,7 @@ int connect_agents () {
         }
 
         while(retries < max_retries && !ok) {
+            printf("ip: %s\n", config.ips[i]);
             if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
                 retries++;
  			    fprintf(stderr, "ERROR connecting to Server [Retry %d/%d]. %s\n",retries, max_retries, strerror(errno));
@@ -368,27 +369,70 @@ float readlastline(string filename)
 
 }
 
-void killcudalign() {
+void killprocess(char process[]) {
     int i;
-    char kill_comand[50], myIP[15] = "192.168.0.88"; //TODO: identify this GPU's IP and hostname of each GPU
+    char kill_comand[50], myIP[15] = "192.168.0.88", close_terminals[50]=""; //TODO: identify this GPU's IP and hostname of each GPU
 
     for (i=0; i<config.gpus; i++) {
         if (strcmp(config.ips[i], myIP)) {
             strcpy(kill_comand, "ssh laicoadm@");
             strcat(kill_comand, config.ips[i]);
-            strcat(kill_comand, " pkill cudalign");
+            strcat(kill_comand, " pkill ");
+            strcat(kill_comand, process);
+
+            strcpy(close_terminals, "pkill -xf 'ssh laicoadm@");
+            strcat(close_terminals, config.ips[i]);
+            strcat(close_terminals, "'");
         }
         else {
-            strcpy(kill_comand, "pkill cudalign");
+            strcpy(kill_comand, "pkill ");
+            strcat(kill_comand, process);
         }
         
-        //printf("Kill comand: %s\n", kill_comand);
+        printf("Kill comand: %s\n", kill_comand);
+        printf("Close terminals comand: %s\n", close_terminals);
         system(kill_comand);
+        system(close_terminals);
         strcpy(kill_comand, "");
+        strcpy(close_terminals, "");
+    }
+    sleep(3);
+    strcpy(close_terminals, "pkill bash");
+    printf("Last close terminals command: %s\n", close_terminals);
+    system(close_terminals);
+}
+
+void restartbalancers(char workdir[]) {
+    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88";
+    int i;
+    //sleep(3);
+
+    for(i=0; i<config.gpus; i++) {
+        sprintf(str_number, "%d", config.gpu_number[i]);
+        if(strcmp(config.ips[i], myIP)) {
+            strcpy(balancers_command, "gnome-terminal -- bash -c 'ssh laicoadm@");
+            strcat(balancers_command, config.ips[i]);
+            strcat(balancers_command, " \"cd Documentos/Filipe/FT-dynBP;./balancer "); //ls is here just to not start the command with cd (error)
+            strcat(balancers_command, str_number);
+            strcat(balancers_command, " ");
+            strcat(balancers_command, workdir);
+            strcat(balancers_command, "\";exec bash'");
+        }
+        else {
+            //gnome-terminal --tab -- sh -c "./balancer 0 ../dirs_MASA; bash"
+            strcat(balancers_command, "gnome-terminal -- sh -c \"./balancer ");
+            strcat(balancers_command, str_number);
+            strcat(balancers_command, " ");
+            strcat(balancers_command, workdir);
+            strcat(balancers_command, "; bash\"");
+        }
+        printf("Command %d: %s\n", i, balancers_command);
+        system(balancers_command);
+        strcpy(balancers_command, "");
     }
 }
 
-void detectfailure() {
+int detectfailure(char workdir[]) {
     int qtd_bytes=0, ret_access=-1, valread=0;
     char recmessage[10] = {0};
 
@@ -400,12 +444,16 @@ void detectfailure() {
 
     if(ret_access==0) {
         printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
-        killcudalign();
+        killprocess("cudalign");
+        killprocess("balancer");
+        restartbalancers(workdir);
+        return 1;
     }
     else {
         memset(recmessage, 0, sizeof(recmessage));
         valread = read(socketfdwrite, recmessage, 4);
         printf ("\n ### Controller: balancer message received: %d - %s.\n\n", valread, recmessage);
+        return 0;
     }
 }
 
@@ -711,7 +759,7 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates performance counters can be read
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-          detectfailure();
+          if(detectfailure(WORKDIR)){continue;}
 
           //for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
           //   printf ("Original: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
@@ -798,7 +846,7 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates last GPU finished its job
           printf ("\n ### Controller: waiting for balancer END message. \n");
 
-          detectfailure ();
+          if(detectfailure(WORKDIR)){continue;}
           //sleep(10);
 
         }
@@ -809,12 +857,12 @@ int main(int argc, char *argv[]) {
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-    detectfailure();  
+    if(detectfailure(WORKDIR)){printf("break\n");} 
     
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer END message. \n");
 
-    detectfailure();
+    if(detectfailure(WORKDIR)){printf("break\n");}
 
     fflush(stdout);
 
