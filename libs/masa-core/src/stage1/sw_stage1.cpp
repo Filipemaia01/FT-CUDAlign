@@ -535,23 +535,26 @@ int stage1(Job* job) {
 		blocksFile = NULL;
 	}
 
-	printf(">>>>> Deleting firstColumn: %p\n", firstColumn);
 	if (firstColumn != NULL) {
+		fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);
 		delete firstColumn;
 	}
 
-	printf(">>>>> Deleting lastColumn: %p\n", lastColumn);
 	if (lastColumn != NULL) {
+		fprintf(stderr, ">>>>> Deleting lastColumn: %p\n", lastColumn);
 		delete lastColumn;
 	}
 
 	if (job->getAlignerPool() != NULL) {
 		if (!job->getAlignerPool()->isFirstNode()) {
 			score_t score = job->getAlignerPool()->receiveScore();
+			fprintf(stderr, "@F: Adding BestScore\n");
 			bestScoreList->add(score.i, score.j, score.score);
 		}
 	}
+	fprintf(stderr, "@F: getBestScore\n");
 	score_t best_score = bestScoreList->getBestScore();
+	fprintf(stderr, "@F: Received the best score\n");
 
 	if (best_score.score > job->bestglobalscore.score) {
 		job->bestglobalscore.score = best_score.score;
@@ -559,6 +562,8 @@ int stage1(Job* job) {
 		job->bestglobalscore.j = best_score.j;
 		job->bestglobalscore.node = job->node;
 	}
+
+	fprintf(stderr, "@F: Going to write execution status\n");
 
 	fprintf(stats, "======= Execution Status =======\n");
 	fprintf(stats, "   Best Score: %d\n", best_score.score);
@@ -595,6 +600,7 @@ int stage1(Job* job) {
 	if (job->getAlignerPool() != NULL) {
 		crosspoint_t c;
 		if (!job->getAlignerPool()->isLastNode()) {
+			fprintf(stderr, "@F: Not last node\n");
 			job->getAlignerPool()->dispatchScore(best_score);
 			best_score = job->getAlignerPool()->getBestNodeScore();
 		}

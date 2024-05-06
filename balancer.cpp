@@ -185,7 +185,7 @@ int resolveDNS(const char * hostname , char* ip) {
 						retries, max_retries, strerror(errno));
 			}
 			retries++;
-			usleep(1000);
+			usleep(10000);
 		} else {
 			ok = 1;
 		}
@@ -611,6 +611,7 @@ int main(int argc, char const *argv[])
     		//   pthread_cancel(thrread);
                 //if (wr)
     		//   pthread_cancel(thrwrite);
+            sleep(20); //time to kill data structures before finishing balancer and so finishing cudalign instantiated by it
     	    return (0);
     	    break;
     	}

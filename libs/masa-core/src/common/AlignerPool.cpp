@@ -48,6 +48,7 @@ void AlignerPool::waitId(int id) {
 
 void AlignerPool::dispatchScore(score_t score) {
 	string filename = getMsgFile("stage1", right);
+	fprintf(stderr,"@F: dispatchScore - filename: %s\n", filename.c_str());
 
 	FILE* file = fopen(filename.c_str(), "wt");
 	fprintf(file, "%d %d %d\n", score.i, score.j, score.score);
@@ -84,6 +85,7 @@ score_t AlignerPool::receiveScore() {
 	score_t score;
 
 	string filename = getMsgFile("stage1", left);
+	fprintf(stderr,"@F: receiveScore - filename: %s\n", filename.c_str());
 	waitSignal(filename);
 
 	FILE* file = fopen(filename.c_str(), "rt");
@@ -113,7 +115,6 @@ int AlignerPool::receiveBestScoreDyn() {
         string filename = getMsgFile("scoredyn", leftdyn);
         //printf (" \n\n !!! rightdyn: %d - filename: %s  !!! \n\n", leftdyn, filename.c_str());
         waitSignal(filename);
-
         FILE* file = fopen(filename.c_str(), "rt");
         fscanf(file, "%d\n", &score);
         fclose(file);
@@ -257,7 +258,7 @@ void AlignerPool::waitSignal(string msgFile) {
 	bool signalOk = false;
 	while (!signalOk) {
 		if (count % 1000 == 0) {
-			//printf("[%d] Waiting Signal for msg: %s\n", getpid(), msgFile.c_str());
+			fprintf(stderr,"[%d] Waiting Signal for msg: %s\n", getpid(), msgFile.c_str());
 		}
 		signalOk = peekSignal(msgFile);
 		if (!signalOk) {

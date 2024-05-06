@@ -272,6 +272,15 @@ int connect_agents () {
    return EXIT_SUCCESS;
 }
 
+void close_agents () {
+    int i;
+
+    for(i=0; i<config.gpus; i++) {
+        close(config.sock[i]);
+    }
+    close(socketfdwrite);
+}
+
 void rebalance (int start) {
 	int k;
 	int sum = 0;
@@ -369,6 +378,27 @@ float readlastline(string filename)
 
 }
 
+void closeterminals() {
+    int i;
+    char myIP[15] = "192.168.0.88", close_terminals[50];
+
+    for(i=0; i<config.gpus; i++) {
+        if(strcmp(config.ips[i],myIP)){
+            strcpy(close_terminals, "pkill -xf 'ssh laicoadm@");
+            strcat(close_terminals, config.ips[i]);
+            strcat(close_terminals, "'");
+
+            printf("Close terminals comand: %s\n", close_terminals);
+            system(close_terminals);
+            strcpy(close_terminals, "");
+        }
+    }
+    //sleep(3);
+    strcpy(close_terminals, "pkill bash");
+    printf("Last close terminals command: %s\n", close_terminals);
+    system(close_terminals);
+}
+
 void killprocess(char process[]) {
     int i;
     char kill_comand[50], myIP[15] = "192.168.0.88", close_terminals[50]=""; //TODO: identify this GPU's IP and hostname of each GPU
@@ -379,10 +409,6 @@ void killprocess(char process[]) {
             strcat(kill_comand, config.ips[i]);
             strcat(kill_comand, " pkill ");
             strcat(kill_comand, process);
-
-            strcpy(close_terminals, "pkill -xf 'ssh laicoadm@");
-            strcat(close_terminals, config.ips[i]);
-            strcat(close_terminals, "'");
         }
         else {
             strcpy(kill_comand, "pkill ");
@@ -390,16 +416,9 @@ void killprocess(char process[]) {
         }
         
         printf("Kill comand: %s\n", kill_comand);
-        printf("Close terminals comand: %s\n", close_terminals);
         system(kill_comand);
-        system(close_terminals);
         strcpy(kill_comand, "");
-        strcpy(close_terminals, "");
     }
-    sleep(3);
-    strcpy(close_terminals, "pkill bash");
-    printf("Last close terminals command: %s\n", close_terminals);
-    system(close_terminals);
 }
 
 void restartbalancers(char workdir[]) {
@@ -446,7 +465,12 @@ int detectfailure(char workdir[]) {
         printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
         killprocess("cudalign");
         killprocess("balancer");
+        //closeterminals();
         restartbalancers(workdir);
+        close_agents();
+        connect_agents();
+        remove(failure_path);
+        sleep(3);
         return 1;
     }
     else {
@@ -542,7 +566,6 @@ int main(int argc, char *argv[]) {
 
     strcpy(failure_path, WORKDIR);
     strcat(failure_path, "/share/failure.txt");
-    printf("@F: failure path: %s\n", failure_path);
 
     char recmessage[10] = {0};
 
@@ -583,7 +606,7 @@ int main(int argc, char *argv[]) {
     // Connect balancer sockets
     if (connect_agents () < 0) {
     	//return ERROR;
-        printf ("### Controller: sockect connection error \n");
+        printf ("### Controller: socket connection error \n");
         return ERROR;
     }
 
@@ -759,7 +782,11 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates performance counters can be read
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-          if(detectfailure(WORKDIR)){continue;}
+          if(detectfailure(WORKDIR)){
+            kk--;
+            socketinitiated = 0;
+            continue;
+          }
 
           //for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
           //   printf ("Original: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
@@ -846,9 +873,12 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates last GPU finished its job
           printf ("\n ### Controller: waiting for balancer END message. \n");
 
-          if(detectfailure(WORKDIR)){continue;}
+          if(detectfailure(WORKDIR)){
+            kk--;
+            socketinitiated = 0;
+            continue;
+          }
           //sleep(10);
-
         }
      }
 

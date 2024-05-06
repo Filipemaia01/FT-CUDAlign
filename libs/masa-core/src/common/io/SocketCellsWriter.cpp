@@ -183,6 +183,7 @@ void SocketCellsWriter::init() {
     if (DEBUG) printf("SocketCellsWriter: Bind to local address %d\n", port);
     if ((rc = bind(servSock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr))) < 0) {
         fprintf(stderr, "ERROR; return code from bind() yyyyyyyyyy is %d\n", rc);
+        failureSignal();
         exit(-1);
     }
 
@@ -190,6 +191,7 @@ void SocketCellsWriter::init() {
     if (DEBUG) printf("SocketCellsWriter: Listening on port %d\n", port);
     if ((rc=listen(servSock, 1)) < 0) {
         fprintf(stderr, "ERROR; return code from listen() is %d\n", rc);
+        failureSignal();
         exit(-1);
     }
 
@@ -199,6 +201,7 @@ void SocketCellsWriter::init() {
     /* Wait for a client to connect */
     if ((clntSock = accept(servSock, (struct sockaddr *) &echoClntAddr, &clntLen)) < 0){
         fprintf(stderr, "ERROR; return code from accept() is %d\n", clntSock);
+        failureSignal();
         exit(-1);
     }
 

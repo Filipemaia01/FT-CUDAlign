@@ -46,7 +46,7 @@ SocketCellsReader::~SocketCellsReader() {
 }
 
 void SocketCellsReader::removeOldFiles() {
-    remove(signal_path.c_str());
+    //remove(signal_path.c_str());
     remove(close_socket_path.c_str());
     remove(failure_signal_path.c_str());
 }
@@ -188,6 +188,7 @@ void SocketCellsReader::init() {
 	}
 	if (!ok) {
 		fprintf(stderr, "ERROR connecting to Server. Aborting\n");
+        failureSignal();
 		exit(-1);
 	}
     fprintf(stderr, "Connected to Server %s\n", inet_ntoa(echoServAddr.sin_addr));
