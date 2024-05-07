@@ -451,7 +451,7 @@ void restartbalancers(char workdir[]) {
     }
 }
 
-int detectfailure(char workdir[]) {
+int detectfailure() {
     int qtd_bytes=0, ret_access=-1, valread=0;
     char recmessage[10] = {0};
 
@@ -462,15 +462,6 @@ int detectfailure(char workdir[]) {
     }
 
     if(ret_access==0) {
-        printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
-        killprocess("cudalign");
-        killprocess("balancer");
-        //closeterminals();
-        restartbalancers(workdir);
-        close_agents();
-        connect_agents();
-        remove(failure_path);
-        sleep(3);
         return 1;
     }
     else {
@@ -479,6 +470,19 @@ int detectfailure(char workdir[]) {
         printf ("\n ### Controller: balancer message received: %d - %s.\n\n", valread, recmessage);
         return 0;
     }
+}
+
+void recoverfromfailure(char workdir[]) {
+
+    printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
+    killprocess("cudalign");
+    killprocess("balancer");
+    //closeterminals();
+    restartbalancers(workdir);
+    close_agents();
+    connect_agents();
+    remove(failure_path);
+    sleep(3);
 }
 
 void initSocketWrite() {
@@ -782,7 +786,8 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates performance counters can be read
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-          if(detectfailure(WORKDIR)){
+          if(detectfailure()){
+            recoverfromfailure(WORKDIR);
             kk--;
             socketinitiated = 0;
             continue;
@@ -873,7 +878,8 @@ int main(int argc, char *argv[]) {
           // wait for socket message from balancer which indicates last GPU finished its job
           printf ("\n ### Controller: waiting for balancer END message. \n");
 
-          if(detectfailure(WORKDIR)){
+          if(detectfailure()){
+            recoverfromfailure(WORKDIR);
             kk--;
             socketinitiated = 0;
             continue;
@@ -887,12 +893,12 @@ int main(int argc, char *argv[]) {
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-    if(detectfailure(WORKDIR)){printf("break\n");} 
+    if(detectfailure()){printf("break\n");} 
     
     // wait for socket message from balancer which indicates last GPU finished its job
     printf ("\n ### Controller: waiting for balancer END message. \n");
 
-    if(detectfailure(WORKDIR)){printf("break\n");}
+    if(detectfailure()){printf("break\n");}
 
     fflush(stdout);
 
