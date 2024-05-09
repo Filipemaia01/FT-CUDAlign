@@ -44,7 +44,13 @@ using namespace std;
 #define DEBUG 0
 #define LIMIT 2
 
-
+typedef struct {
+	int h;
+	union {
+		int f;
+		int e;
+	};
+} __attribute__ ((aligned (8))) cell_t;
 
 struct config_struct {
     int gpus;
@@ -462,6 +468,7 @@ int detectfailure() {
     }
 
     if(ret_access==0) {
+        printf("\n ### Failure detected! ###\n");
         return 1;
     }
     else {
@@ -472,9 +479,72 @@ int detectfailure() {
     }
 }
 
-void recoverfromfailure(char workdir[]) {
+int isBkptValid (char breakpoint_path[], char sequence_path[]) {
+    FILE* breakpoint;
+    FILE* vertical_sequence;
+    long int breakpoint_size=0, sequence_size=0;
+    char i, line[500];
 
-    printf("\n ### Failure detected. Killing all instances of CUDAlign ###\n");
+    //get breakpoint size ####################################################
+    //sleep(10);
+    breakpoint = fopen(breakpoint_path, "rb");
+    if (breakpoint == NULL) {
+        fprintf(stderr, "Failed to open config file %s\n", breakpoint_path);
+        return 0;
+    }
+
+    fseek(breakpoint, 0, SEEK_END);
+    breakpoint_size = ftell(breakpoint);
+    breakpoint_size = breakpoint_size/sizeof(cell_t);
+
+    fclose(breakpoint);
+    printf("Breakpoint Size = %ld\n", breakpoint_size);
+
+    //get sequence size #######################################################
+    vertical_sequence = fopen(sequence_path, "rb");
+    if (vertical_sequence == NULL) {
+        fprintf(stderr, "Failed to open config file %s\n", sequence_path);
+        return 0;
+    }
+    fgets(line, sizeof(line), vertical_sequence);
+
+    while ((i=fgetc(vertical_sequence)) != EOF) {
+        if (i == '\r' || i == '\n' || i == ' ');
+        else{
+            sequence_size++;
+        }
+    }
+    sequence_size++;
+    fclose(vertical_sequence);
+    printf("Sequence Size = %ld\n", sequence_size);
+
+    //compare files size #######################################################
+    if(sequence_size == breakpoint_size) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+void recoverfromfailure(char workdir[], char cpart[]) {
+    char ctrl_path[200];
+    strcpy(ctrl_path, workdir);
+    strcat(ctrl_path, "/work");
+    strcat(ctrl_path, cpart);
+    strcat(ctrl_path, "/dynread.txt");
+    printf("@F: removing file: %s\n", ctrl_path);
+    remove(ctrl_path);
+
+    strcpy(ctrl_path, "");
+    strcpy(ctrl_path, workdir);
+    strcat(ctrl_path, "/work");
+    strcat(ctrl_path, cpart);
+    strcat(ctrl_path, "/dynend.txt");
+    printf("@F: removing file: %s\n", ctrl_path);
+    remove(ctrl_path);
+
+    printf("\n ### Killing all instances of CUDAlign ###\n");
     killprocess("cudalign");
     killprocess("balancer");
     //closeterminals();
@@ -482,7 +552,7 @@ void recoverfromfailure(char workdir[]) {
     close_agents();
     connect_agents();
     remove(failure_path);
-    sleep(3);
+    //sleep(3);
 }
 
 void initSocketWrite() {
@@ -561,15 +631,21 @@ int main(int argc, char *argv[]) {
     long long int sumcheck = 0;
     int part;
     int valread = 0;
+    int valid_it = 0, failed=0;
 
     string command;
     string deccom;
+
+    char last_breakpoints[2][200]; //first element stores the previous bkpt name. Second element stores the latest bkpt name.
+    char c_part[100];
 
     char WORKDIR[100];
     strcpy (WORKDIR,argv[2]);
 
     strcpy(failure_path, WORKDIR);
     strcat(failure_path, "/share/failure.txt");
+    strcpy(last_breakpoints[0], "unavailable");
+    strcpy(last_breakpoints[1], "unavailable");
 
     char recmessage[10] = {0};
 
@@ -644,6 +720,39 @@ int main(int argc, char *argv[]) {
 
     // send initial command execution
     for (int kk=0; kk<=config.breakpoints; kk++) {
+        if(kk > 0 || failed) {
+            failed=0;
+            sleep(10);
+            if(isBkptValid(last_breakpoints[1], config.seq0)){
+                valid_it = kk;
+            }
+            else {
+                if(!isBkptValid(last_breakpoints[0], config.seq0)){
+                    printf("\n@F: Two last breakpoints corrupted\n");
+                    if(kk<2) {
+                        printf("Restarting from begining\n");
+                        kk=0;
+                        valid_it = 0;
+                        recoverfromfailure(WORKDIR, c_part);
+                        socketinitiated = 0;
+                    }
+                    else{
+                        printf("Finishing execution\n");
+                        return 0;
+                    }
+                }
+                else {
+                    printf("\n@F: Last Breakpoint is corrupted. Returning to previous breakpoint\n");
+                    kk=valid_it;
+                    strcpy(last_breakpoints[1], "");
+                    strcpy(last_breakpoints[1], last_breakpoints[0]);
+                    strcpy(last_breakpoints[0], "");
+                    strcpy(last_breakpoints[0], "unavailable");
+                    recoverfromfailure(WORKDIR, c_part);
+                    socketinitiated = 0;
+                }
+            }
+        }
        for (i=0; i<config.gpus;i++) {
     	  part = kk*config.gpus + i + 1;
           //command.str("");
@@ -728,6 +837,15 @@ int main(int argc, char *argv[]) {
                   ss << part;
                   command = command + ss.str() + ".bin";
 
+                  //updating last bkpt
+                  strcpy(last_breakpoints[0], "");
+                  strcpy(last_breakpoints[0], last_breakpoints[1]);
+                  strcpy(last_breakpoints[1], WORKDIR);
+                  strcat(last_breakpoints[1], "/share/out");
+                  sprintf(c_part, "%d", part);
+                  strcat(last_breakpoints[1], c_part);
+                  strcat(last_breakpoints[1], ".bin");
+                  printf("\n@F:Last breakpoint [1]: %s\n", last_breakpoints[1]);
               }
     	      else {
                  ss <<  config.ports[i];
@@ -787,9 +905,10 @@ int main(int argc, char *argv[]) {
     	  printf ("\n ### Controller: waiting for balancer READ message. \n");
 
           if(detectfailure()){
-            recoverfromfailure(WORKDIR);
-            kk--;
+            //recoverfromfailure(WORKDIR, c_part);
+            failed=1;
             socketinitiated = 0;
+            kk--;
             continue;
           }
 
@@ -879,9 +998,10 @@ int main(int argc, char *argv[]) {
           printf ("\n ### Controller: waiting for balancer END message. \n");
 
           if(detectfailure()){
-            recoverfromfailure(WORKDIR);
-            kk--;
+            //recoverfromfailure(WORKDIR, c_part);
+            failed=1;
             socketinitiated = 0;
+            kk--;
             continue;
           }
           //sleep(10);
