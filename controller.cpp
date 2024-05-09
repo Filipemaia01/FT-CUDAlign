@@ -722,7 +722,7 @@ int main(int argc, char *argv[]) {
     for (int kk=0; kk<=config.breakpoints; kk++) {
         if(kk > 0 || failed) {
             failed=0;
-            sleep(10);
+            //sleep(10);
             if(isBkptValid(last_breakpoints[1], config.seq0)){
                 valid_it = kk;
             }

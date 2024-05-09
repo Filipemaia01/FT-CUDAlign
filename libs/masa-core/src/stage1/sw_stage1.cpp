@@ -520,29 +520,11 @@ int stage1(Job* job) {
        //fflush(dbsta);
        //fclose(dbsta);
     }
-    
-    if (dynamic != 0) {
-            string filenamedyn = wdir + "/dynend.txt";
-            dbdyn = fopen(filenamedyn.c_str(),"wt");
-            fprintf(dbdyn,"END");
-            fclose (dbdyn);
-    }
-
 
 	if (blocksFile != NULL) {
 		blocksFile->close();
 		delete blocksFile;
 		blocksFile = NULL;
-	}
-
-	if (firstColumn != NULL) {
-		fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);
-		delete firstColumn;
-	}
-
-	if (lastColumn != NULL) {
-		fprintf(stderr, ">>>>> Deleting lastColumn: %p\n", lastColumn);
-		delete lastColumn;
 	}
 
 	if (job->getAlignerPool() != NULL) {
@@ -617,6 +599,23 @@ int stage1(Job* job) {
 		crosspointsFile->close();
 		delete crosspointsFile;
 
+		if (firstColumn != NULL) {
+			fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);
+			delete firstColumn;
+		}
+
+		if (lastColumn != NULL) {
+			fprintf(stderr, ">>>>> Deleting lastColumn: %p\n", lastColumn);
+			delete lastColumn;
+		}
+
+		if (dynamic != 0) {
+            string filenamedyn = wdir + "/dynend.txt";
+            dbdyn = fopen(filenamedyn.c_str(),"wt");
+            fprintf(dbdyn,"END");
+            fclose (dbdyn);
+    	}
+
 		return 1;
 	} else {
 		int count = 0;
@@ -629,6 +628,23 @@ int stage1(Job* job) {
 			crosspointsFile->close();
 			delete crosspointsFile;
 		}
+
+		if (firstColumn != NULL) {
+			fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);
+			delete firstColumn;
+		}
+
+		if (lastColumn != NULL) {
+			fprintf(stderr, ">>>>> Deleting lastColumn: %p\n", lastColumn);
+			delete lastColumn;
+		}
+
+		if (dynamic != 0) {
+            string filenamedyn = wdir + "/dynend.txt";
+            dbdyn = fopen(filenamedyn.c_str(),"wt");
+            fprintf(dbdyn,"END");
+            fclose (dbdyn);
+    	}
 
 		return count;
 	}
