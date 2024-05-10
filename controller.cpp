@@ -485,6 +485,7 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
     long int breakpoint_size=0, sequence_size=0;
     char i, line[500];
 
+    printf("@F: Checking breakpoint %s\n", breakpoint_path);
     //get breakpoint size ####################################################
     //sleep(10);
     breakpoint = fopen(breakpoint_path, "rb");
@@ -523,6 +524,36 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
         return 1;
     }
     else {
+        return 0;
+    }
+}
+
+int finishconfirmation (char workdir[], char cpart[]) {
+    char endfile_path[200];
+    int tries=0;
+
+        strcpy(endfile_path, "");
+        strcpy(endfile_path, workdir);
+        strcat(endfile_path, "/work");
+        strcat(endfile_path, cpart);
+        strcat(endfile_path, "/dynend.txt");
+
+    if(access(endfile_path, F_OK)!=0) {
+        return 0;
+    }
+    else {
+        printf("@F: removing file: %s\n", endfile_path);
+        remove(endfile_path);
+
+        while((access(endfile_path, F_OK)!=0) && tries < 15) {
+            printf("Waiting for CUDAlign's finish confirmation. Trying: [%d/15]\n", tries);
+            sleep(1);
+            tries++;
+        }
+        if(tries == 30) {
+            printf("\n ### Failure detected! ###\n");
+            return 1;
+        }
         return 0;
     }
 }
@@ -720,6 +751,9 @@ int main(int argc, char *argv[]) {
 
     // send initial command execution
     for (int kk=0; kk<=config.breakpoints; kk++) {
+        if (!failed) {
+            failed = finishconfirmation(WORKDIR, c_part);
+        }
         if(kk > 0 || failed) {
             failed=0;
             //sleep(10);

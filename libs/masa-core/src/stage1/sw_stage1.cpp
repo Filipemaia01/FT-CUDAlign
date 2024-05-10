@@ -599,6 +599,13 @@ int stage1(Job* job) {
 		crosspointsFile->close();
 		delete crosspointsFile;
 
+		if (dynamic != 0) {
+            string filenamedyn = wdir + "/dynend.txt";
+            dbdyn = fopen(filenamedyn.c_str(),"wt");
+            fprintf(dbdyn,"END");
+            fclose (dbdyn);
+    	}
+
 		if (firstColumn != NULL) {
 			fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);
 			delete firstColumn;
@@ -628,6 +635,13 @@ int stage1(Job* job) {
 			crosspointsFile->close();
 			delete crosspointsFile;
 		}
+
+		if (dynamic != 0) {
+            string filenamedyn = wdir + "/dynend.txt";
+            dbdyn = fopen(filenamedyn.c_str(),"wt");
+            fprintf(dbdyn,"END");
+            fclose (dbdyn);
+    	}
 
 		if (firstColumn != NULL) {
 			fprintf(stderr, ">>>>> Deleting firstColumn: %p\n", firstColumn);

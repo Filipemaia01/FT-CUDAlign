@@ -170,7 +170,7 @@ void SocketCellsReader::init() {
     echoServAddr.sin_port        = htons(port); /* Server port */
 
     /* Establish the connection to the echo server */
-    int max_retries = 3000;
+    int max_retries = 1500;
     int retries = 0;
     int ok = 0;
     fprintf(stderr, "Listening on %s %d\n", hostname.c_str(), port);

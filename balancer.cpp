@@ -611,7 +611,7 @@ int main(int argc, char const *argv[])
     		//   pthread_cancel(thrread);
                 //if (wr)
     		//   pthread_cancel(thrwrite);
-            sleep(20); //time to kill data structures before finishing balancer and so finishing cudalign instantiated by it
+            //sleep(20); //time to kill data structures before finishing balancer and so finishing cudalign instantiated by it
     	    return (0);
     	    break;
     	}
