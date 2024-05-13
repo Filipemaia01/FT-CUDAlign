@@ -586,6 +586,46 @@ void recoverfromfailure(char workdir[], char cpart[]) {
     //sleep(3);
 }
 
+int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char c_part[], int* socketinitiated) {
+    if (!*failed) {
+        *failed = finishconfirmation(workdir, c_part);
+    }
+    if(*kk > 0 || *failed) {
+        *failed=0;
+        //sleep(10);
+        if(isBkptValid(last_breakpoints[1], config.seq0)){
+            *valid_it = *kk;
+        }
+        else {
+            if(!isBkptValid(last_breakpoints[0], config.seq0)){
+                printf("\n@F: Two last breakpoints corrupted\n");
+                if(*kk<2) {
+                    printf("Restarting from begining\n");
+                    *kk=0;
+                    *valid_it = 0;
+                    recoverfromfailure(workdir, c_part);
+                    *socketinitiated = 0;
+                }
+                else{
+                    printf("Finishing execution\n");
+                    return 0;
+                }
+            }
+            else {
+                printf("\n@F: Last Breakpoint is corrupted. Returning to previous breakpoint\n");
+                *kk=*valid_it;
+                strcpy(last_breakpoints[1], "");
+                strcpy(last_breakpoints[1], last_breakpoints[0]);
+                strcpy(last_breakpoints[0], "");
+                strcpy(last_breakpoints[0], "unavailable");
+                recoverfromfailure(workdir, c_part);
+                *socketinitiated = 0;
+            }
+        }
+    }
+    return 1;
+}
+
 void initSocketWrite() {
      int rc;
      int servSock;                    /* Socket descriptor for server */
@@ -751,41 +791,8 @@ int main(int argc, char *argv[]) {
 
     // send initial command execution
     for (int kk=0; kk<=config.breakpoints; kk++) {
-        if (!failed) {
-            failed = finishconfirmation(WORKDIR, c_part);
-        }
-        if(kk > 0 || failed) {
-            failed=0;
-            //sleep(10);
-            if(isBkptValid(last_breakpoints[1], config.seq0)){
-                valid_it = kk;
-            }
-            else {
-                if(!isBkptValid(last_breakpoints[0], config.seq0)){
-                    printf("\n@F: Two last breakpoints corrupted\n");
-                    if(kk<2) {
-                        printf("Restarting from begining\n");
-                        kk=0;
-                        valid_it = 0;
-                        recoverfromfailure(WORKDIR, c_part);
-                        socketinitiated = 0;
-                    }
-                    else{
-                        printf("Finishing execution\n");
-                        return 0;
-                    }
-                }
-                else {
-                    printf("\n@F: Last Breakpoint is corrupted. Returning to previous breakpoint\n");
-                    kk=valid_it;
-                    strcpy(last_breakpoints[1], "");
-                    strcpy(last_breakpoints[1], last_breakpoints[0]);
-                    strcpy(last_breakpoints[0], "");
-                    strcpy(last_breakpoints[0], "unavailable");
-                    recoverfromfailure(WORKDIR, c_part);
-                    socketinitiated = 0;
-                }
-            }
+        if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, c_part, &socketinitiated)){
+            return 0;
         }
        for (i=0; i<config.gpus;i++) {
     	  part = kk*config.gpus + i + 1;
