@@ -8,12 +8,13 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <bits/stdc++.h> 
+#include <bits/stdc++.h>
 // #include <seqan/alignment_free.h>
 
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector> 
 #include <fstream>
 
 using namespace std;
@@ -421,7 +422,7 @@ void killprocess(char process[]) {
             strcat(kill_comand, process);
         }
         
-        printf("Kill comand: %s\n", kill_comand);
+        //printf("Kill comand: %s\n", kill_comand);
         system(kill_comand);
         strcpy(kill_comand, "");
     }
@@ -451,7 +452,7 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, workdir);
             strcat(balancers_command, "; bash\"");
         }
-        printf("Command %d: %s\n", i, balancers_command);
+        //printf("Command %d: %s\n", i, balancers_command);
         system(balancers_command);
         strcpy(balancers_command, "");
     }
@@ -542,12 +543,11 @@ int finishconfirmation (char workdir[], char cpart[]) {
         return 0;
     }
     else {
-        printf("@F: removing file: %s\n", endfile_path);
         remove(endfile_path);
 
         while((access(endfile_path, F_OK)!=0) && tries < 15) {
             printf("Waiting for CUDAlign's finish confirmation. Trying: [%d/15]\n", tries);
-            sleep(1);
+            sleep(2);
             tries++;
         }
         if(tries == 30) {
@@ -564,7 +564,6 @@ void recoverfromfailure(char workdir[], char cpart[]) {
     strcat(ctrl_path, "/work");
     strcat(ctrl_path, cpart);
     strcat(ctrl_path, "/dynread.txt");
-    printf("@F: removing file: %s\n", ctrl_path);
     remove(ctrl_path);
 
     strcpy(ctrl_path, "");
@@ -572,7 +571,6 @@ void recoverfromfailure(char workdir[], char cpart[]) {
     strcat(ctrl_path, "/work");
     strcat(ctrl_path, cpart);
     strcat(ctrl_path, "/dynend.txt");
-    printf("@F: removing file: %s\n", ctrl_path);
     remove(ctrl_path);
 
     printf("\n ### Killing all instances of CUDAlign ###\n");
@@ -583,7 +581,6 @@ void recoverfromfailure(char workdir[], char cpart[]) {
     close_agents();
     connect_agents();
     remove(failure_path);
-    //sleep(3);
 }
 
 int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char c_part[], int* socketinitiated) {
@@ -702,10 +699,11 @@ int main(int argc, char *argv[]) {
     long long int sumcheck = 0;
     int part;
     int valread = 0;
-    int valid_it = 0, failed=0;
+    int valid_it = 0, failed=0, exec_finished=0;
 
     string command;
     string deccom;
+    vector <string> last_commands;
 
     char last_breakpoints[2][200]; //first element stores the previous bkpt name. Second element stores the latest bkpt name.
     char c_part[100];
@@ -794,6 +792,7 @@ int main(int argc, char *argv[]) {
         if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, c_part, &socketinitiated)){
             return 0;
         }
+        last_commands.clear();
        for (i=0; i<config.gpus;i++) {
     	  part = kk*config.gpus + i + 1;
           //command.str("");
@@ -886,7 +885,7 @@ int main(int argc, char *argv[]) {
                   sprintf(c_part, "%d", part);
                   strcat(last_breakpoints[1], c_part);
                   strcat(last_breakpoints[1], ".bin");
-                  printf("\n@F:Last breakpoint [1]: %s\n", last_breakpoints[1]);
+                  printf("\n@F:Last breakpoint [%d]: %s\n", i, last_breakpoints[1]);
               }
     	      else {
                  ss <<  config.ports[i];
@@ -910,6 +909,7 @@ int main(int argc, char *argv[]) {
     	  command.copy(com,command.size()+1);
     	  com[command.size()] = '\0';
     	  send(config.sock[i], com, strlen(com), 0);
+          last_commands.push_back(com);
           printf( "\n ### Controller: exec message sent to GPU %d \n", i); 
        }	
        
@@ -1048,18 +1048,45 @@ int main(int argc, char *argv[]) {
           //sleep(10);
         }
      }
-
-     
-
-    // wait for socket message from balancer which indicates last GPU finished its job
-    printf ("\n ### Controller: waiting for balancer READ message. \n");
-
-    if(detectfailure()){printf("break\n");} 
     
-    // wait for socket message from balancer which indicates last GPU finished its job
-    printf ("\n ### Controller: waiting for balancer END message. \n");
+    while(!exec_finished) {
+        if(failed) {
+            recoverfromfailure(WORKDIR, c_part);
+            for (i=0; i<config.gpus;i++) {
+                char com[last_commands[i].size() + 1];
+                last_commands[i].copy(com,last_commands[i].size()+1);
+                com[last_commands[i].size()] = '\0';
+                send(config.sock[i], com, strlen(com), 0);
+                cout << last_commands[i] << std::endl;
+                printf( "\n ### Controller: exec message sent to GPU %d \n", i);
+            }
+            if (!socketinitiated) {
+                initSocketWrite();
+                socketinitiated = 1;
+            }
+            failed=0;
+        }
+           // wait for socket message from balancer which indicates last GPU finished its job
+        printf ("\n ### Controller: waiting for balancer READ message. \n");
 
-    if(detectfailure()){printf("break\n");}
+        if((failed=detectfailure())){
+            socketinitiated=0;
+            continue;
+        } 
+        
+        // wait for socket message from balancer which indicates last GPU finished its job
+        printf ("\n ### Controller: waiting for balancer END message. \n");
+
+        if((failed=detectfailure())){
+            socketinitiated=0;
+            continue;
+        }
+
+        if(!failed) {
+            exec_finished = 1;
+        }
+    }
+
 
     fflush(stdout);
 
