@@ -231,18 +231,13 @@ void update_split (int vgpu) {
 void update_config_info(int* i, int kk, int *vgpu) {
     int j;
 
-    printf("Could not connect to server %d\n", *i);
+    printf("Could not connect to server %s\n", config.ips[*i]);
     for(j=*i; j<config.gpus-1; j++) {
         config.sock[j] = config.sock[j+1];
-        printf("sock[%d]: %d\n", j, config.sock[j]);
         strcpy(config.ips[j], config.ips[j+1]);
-        printf("ip[%d]: %s\n", j, config.ips[j]);
         config.ctrlport [j] = config.ctrlport[j+1];
-        printf("ctrlport[%d]: %d\n", j, config.ctrlport[j]);
         strcpy(config.ports[j], config.ports[j+1]);
-        printf("ports[%d]: %s\n", j, config.ports[j]);
         config.gpu_number[j] = config.gpu_number[j+1];
-        printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
     }
     dyn--;
     config.gpus--;
@@ -266,8 +261,6 @@ int connect_agents (int kk, int* vgpu) {
             printf("\n Socket creation error \n");
             return ERROR;
         }
-        printf("sock[%d]: %d\n", i, config.sock[i]);
-        printf("ctrlport[%d]: %d\n", i, config.ctrlport[i]);
     }
 
     for (i=0; i<config.gpus; i++) {
@@ -280,15 +273,15 @@ int connect_agents (int kk, int* vgpu) {
         }
 
         while(retries < max_retries && !ok) {
-            printf("ip: %s\n", config.ips[i]);
+            //printf("ip: %s\n", config.ips[i]);
             if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
                 retries++;
- 			    fprintf(stderr, "ERROR connecting to Server [Retry %d/%d]. %s\n",retries, max_retries, strerror(errno));
+ 			    fprintf(stderr, "ERROR connecting to Server %s [Retry %d/%d]. %s\n", config.ips[i], retries, max_retries, strerror(errno));
 			    sleep(3);
             }
             else {
                 ok = 1;
-                printf("Connected to server %d\n", i);
+                printf("Connected to server %s\n", config.ips[i]);
             }
         }        
         if (!ok) {
@@ -452,13 +445,13 @@ void killprocess(char process[]) {
 }
 
 void restartbalancers(char workdir[]) {
-    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88";
+    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88"/*, ignoreip[15] = "192.168.0.158"*/;
     int i;
     //sleep(3);
 
     for(i=0; i<config.gpus; i++) {
         sprintf(str_number, "%d", config.gpu_number[i]);
-        if(strcmp(config.ips[i], myIP)) {
+        if(strcmp(config.ips[i], myIP)) { //Not my ip
             strcpy(balancers_command, "gnome-terminal -- bash -c 'ssh laicoadm@");
             strcat(balancers_command, config.ips[i]);
             strcat(balancers_command, " \"cd Documentos/Filipe/FT-dynBP;./balancer "); //ls is here just to not start the command with cd (error)
@@ -467,7 +460,7 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, workdir);
             strcat(balancers_command, "\";exec bash'");
         }
-        else {
+        else { //My ip
             //gnome-terminal --tab -- sh -c "./balancer 0 ../dirs_MASA; bash"
             strcat(balancers_command, "gnome-terminal -- sh -c \"./balancer ");
             strcat(balancers_command, str_number);
@@ -476,7 +469,9 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, "; bash\"");
         }
         //printf("Command %d: %s\n", i, balancers_command);
-        system(balancers_command);
+        //if(strcmp(config.ips[i], ip)) {
+            system(balancers_command);
+        //}
         strcpy(balancers_command, "");
     }
 }
