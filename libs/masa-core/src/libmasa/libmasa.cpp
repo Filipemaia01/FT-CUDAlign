@@ -333,6 +333,7 @@ extern int splitstep;
 extern int dynamic;
 extern int leftdyn;
 extern int rightdyn;
+//extern int lastgpu;
 
 /**
  * Shows the usage of the command line tool.
@@ -485,6 +486,7 @@ static void print_output_formats ( FILE* file=stdout ) {
 
 static void split_sequences ( Job* _job, int split_step, int split_count, int* weights, int wait_step ) {
     long long int proportions[split_count+1];
+	//lastgpu=0;
 
     _job->split = 1;
 
@@ -509,7 +511,11 @@ static void split_sequences ( Job* _job, int split_step, int split_count, int* w
     //printf("\n\n ### split: %d - j0: %d - j1: %d ### \n\n ", split_step, trim_j0, trim_j1);
     jstart = trim_j0 ;					      
     jend = trim_j1;		
-    			     
+
+	/*if(split_count == split_step) {
+		lastgpu = 1;
+		printf("#### @F: LAST GPU! ####\n");
+	}*/
     int splitdyn;
     if (dynamic != 0)
     if (split_step % dynamic == 1) {

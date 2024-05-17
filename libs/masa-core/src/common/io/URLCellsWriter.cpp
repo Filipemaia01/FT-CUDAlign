@@ -20,13 +20,14 @@
  ******************************************************************************/
 
 #include "URLCellsWriter.hpp"
-
 #include "FileCellsWriter.hpp"
 #include "DummyCellsWriter.hpp"
 #include "SocketCellsWriter.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
+
+extern int lastgpu;
 
 URLCellsWriter::URLCellsWriter(string url, string shared_path) {
 	int pos1 = url.find_first_of("://");
@@ -51,6 +52,8 @@ URLCellsWriter::URLCellsWriter(string url, string shared_path) {
 		}
 		writer = new SocketCellsWriter(hostname, port, shared_path);
 	} else if (type == "file") {
+		lastgpu = 1;
+		printf("#### @F: LAST GPU! ####\n");
 		writer = new FileCellsWriter(param);
 	} else if (type == "null") {
 		writer = new DummyCellsWriter();

@@ -68,6 +68,7 @@ static BlocksFile* blocksFile;
 extern int BestGlobal;
 extern int dynamic;
 extern int lastit;
+extern int lastgpu;
 extern string wdir;
 extern FILE * dbabp;
 extern FILE * dbbpd;
@@ -189,6 +190,10 @@ static void getBorderCells(Job* job, SpecialRowsPartition* sraPartition,
 		BufferedCellsWriter* tmp = new BufferedCellsWriter(writer, job->getBufferLimit());
 		tmp->setLogFile(job->outputBufferLogFile, 10.0f);
 		lastColumn = tmp;
+	}
+	else{
+		printf("#### @F: LAST GPU! ####\n");
+		lastgpu=1;
 	}
 
 	if (job->load_column_url.size() > 0) {
@@ -317,6 +322,7 @@ int stage1(Job* job) {
 	FILE* stats = job->fopenStatistics(STAGE_1, 0);
 	job->getAlignmentParams()->printParams(stats);
 	fflush(stats);
+	lastgpu = 0;
 
        string dir;
        string filename;

@@ -79,6 +79,9 @@ int dyn;
 int comma; 
 int gflops = 0;
 char failure_path[200];
+int part;
+int split_total=0;
+int vgpu;
 
 int read_int_from_config_line(char* config_line) {
     char prm_name[MAX_CONFIG_VARIABLE_LEN];
@@ -206,7 +209,26 @@ int read_config_file(char* config_filename) {
     return EXIT_SUCCESS;
 }
 
-void update_config_info(int* i) {
+void update_split (int vgpu) {
+    int k=1, j, split_fail, remainder=0;
+
+    split_fail = split_total/config.gpus;
+    remainder = split_total%config.gpus;
+
+    for(j=part-1; j<vgpu; j++) {
+        if(k<=remainder) {
+            splitnew[j] = split_fail+1;
+        }
+        else {
+            splitnew[j] = split_fail;
+        }
+        k++;
+        printf("@F: splitnew[%d] = %d\n", j, splitnew[j]);
+        if(k==config.gpus) {k=1;}
+    }
+}
+
+void update_config_info(int* i, int kk, int *vgpu) {
     int j;
 
     printf("Could not connect to server %d\n", *i);
@@ -221,15 +243,16 @@ void update_config_info(int* i) {
         printf("ports[%d]: %s\n", j, config.ports[j]);
         config.gpu_number[j] = config.gpu_number[j+1];
         printf("gpu_number[%d]: %d\n", j, config.gpu_number[j]);
-        config.split[j] = 50;
-        printf("split[%d]: %d\n", j, config.split[j]); 
     }
     dyn--;
     config.gpus--;
+    *vgpu = part-1 + (config.breakpoints+1-kk)*config.gpus;
+    printf("@F: New vgpu: %d\n", *vgpu);
+    update_split(*vgpu);
     *i = *i-1;
 }
 
-int connect_agents () {
+int connect_agents (int kk, int* vgpu) {
 
 	struct sockaddr_in agent_addr;
     int i, j, max_retries=3, retries=0, ok=0;
@@ -269,7 +292,7 @@ int connect_agents () {
             }
         }        
         if (!ok) {
-            update_config_info(&i);
+            update_config_info(&i, kk, vgpu);
         }
         retries = 0;
         ok = 0;
@@ -558,7 +581,7 @@ int finishconfirmation (char workdir[], char cpart[]) {
     }
 }
 
-void recoverfromfailure(char workdir[], char cpart[]) {
+void recoverfromfailure(char workdir[], char cpart[], int kk, int*vgpu) {
     char ctrl_path[200];
     strcpy(ctrl_path, workdir);
     strcat(ctrl_path, "/work");
@@ -579,11 +602,11 @@ void recoverfromfailure(char workdir[], char cpart[]) {
     //closeterminals();
     restartbalancers(workdir);
     close_agents();
-    connect_agents();
+    connect_agents(kk, vgpu);
     remove(failure_path);
 }
 
-int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char c_part[], int* socketinitiated) {
+int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char c_part[], int* socketinitiated, int* valid_part, int*vgpu) {
     if (!*failed) {
         *failed = finishconfirmation(workdir, c_part);
     }
@@ -592,6 +615,7 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
         //sleep(10);
         if(isBkptValid(last_breakpoints[1], config.seq0)){
             *valid_it = *kk;
+            *valid_part = part;
         }
         else {
             if(!isBkptValid(last_breakpoints[0], config.seq0)){
@@ -600,7 +624,9 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                     printf("Restarting from begining\n");
                     *kk=0;
                     *valid_it = 0;
-                    recoverfromfailure(workdir, c_part);
+                    part = 1;
+                    *valid_part = 1;
+                    recoverfromfailure(workdir, c_part, *kk, vgpu);
                     *socketinitiated = 0;
                 }
                 else{
@@ -611,11 +637,12 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
             else {
                 printf("\n@F: Last Breakpoint is corrupted. Returning to previous breakpoint\n");
                 *kk=*valid_it;
+                part = *valid_part;
                 strcpy(last_breakpoints[1], "");
                 strcpy(last_breakpoints[1], last_breakpoints[0]);
                 strcpy(last_breakpoints[0], "");
                 strcpy(last_breakpoints[0], "unavailable");
-                recoverfromfailure(workdir, c_part);
+                recoverfromfailure(workdir, c_part, *kk, vgpu);
                 *socketinitiated = 0;
             }
         }
@@ -693,13 +720,14 @@ int main(int argc, char *argv[]) {
     struct timeval start, end;
 
     int ret;
-    int vgpu;
     int qtd_bytes=0, ret_access=-1;
     long long int sum = 0;
     long long int sumcheck = 0;
-    int part;
+    int valid_part = 1;
+    part = 1;
     int valread = 0;
     int valid_it = 0, failed=0, exec_finished=0;
+    int kk = 0;
 
     string command;
     string deccom;
@@ -753,7 +781,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Connect balancer sockets
-    if (connect_agents () < 0) {
+    if (connect_agents (0, &vgpu) < 0) {
     	//return ERROR;
         printf ("### Controller: socket connection error \n");
         return ERROR;
@@ -779,6 +807,9 @@ int main(int argc, char *argv[]) {
     for (int i=0; i<=config.breakpoints;i++) 
       rebalance(i*config.gpus);
 
+    for (int i=0; i<config.gpus;i++) {
+       split_total += splitnew[i];
+    }
     //initSocketWrite();
     int socketinitiated = 0;
     
@@ -788,13 +819,13 @@ int main(int argc, char *argv[]) {
     int i;
 
     // send initial command execution
-    for (int kk=0; kk<=config.breakpoints; kk++) {
-        if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, c_part, &socketinitiated)){
+    for (kk=0; kk<=config.breakpoints; kk++) {
+        if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, c_part, &socketinitiated, &valid_part, &vgpu)){
             return 0;
         }
         last_commands.clear();
        for (i=0; i<config.gpus;i++) {
-    	  part = kk*config.gpus + i + 1;
+    	  //part = kk*config.gpus + i + 1;
           //command.str("");
           command.clear();
     	  command = "EXEC|./cudalign --blocks=512 --clear --no-flush --stage-1 --shared-dir=";
@@ -838,9 +869,7 @@ int main(int argc, char *argv[]) {
     	  ss.str("");
     	  ss.clear();
     	  if (part != 1) {
-    	     int x;
-    	     x = (part-2)%config.gpus;
-    	     if (part%config.gpus == 1) {
+    	     if (i==0) { //First GPU
                 command = command + " --load-column=file://";
                 ss.str("");
                 ss.clear();
@@ -852,8 +881,8 @@ int main(int argc, char *argv[]) {
                 command = command + ss.str() + ".bin";
              }
     	     else {
-                ss <<  config.ports[x];
-      	        command = command + " --load-column=socket://" + config.ips[x] + ":" + ss.str();
+                ss <<  config.ports[i-1];
+      	        command = command + " --load-column=socket://" + config.ips[i-1] + ":" + ss.str();
                 // int po = atoi(config.ports[x]) + 100;
                 // ss.str("");
                 // ss.clear();
@@ -866,7 +895,7 @@ int main(int argc, char *argv[]) {
     	  ss.str("");
     	  ss.clear();
     	  if (part != vgpu) {
-    	      if (part%config.gpus == 0) {
+    	      if (i==config.gpus-1) { //Last GPU
                   command = command + " --flush-column=file://";
                   ss.str("");
                   ss.clear();
@@ -910,7 +939,8 @@ int main(int argc, char *argv[]) {
     	  com[command.size()] = '\0';
     	  send(config.sock[i], com, strlen(com), 0);
           last_commands.push_back(com);
-          printf( "\n ### Controller: exec message sent to GPU %d \n", i); 
+          printf( "\n ### Controller: exec message sent to GPU %d \n", i);
+          part++; 
        }	
        
       if (!socketinitiated) {
@@ -1051,7 +1081,7 @@ int main(int argc, char *argv[]) {
     
     while(!exec_finished) {
         if(failed) {
-            recoverfromfailure(WORKDIR, c_part);
+            recoverfromfailure(WORKDIR, c_part, kk, &vgpu);
             for (i=0; i<config.gpus;i++) {
                 char com[last_commands[i].size() + 1];
                 last_commands[i].copy(com,last_commands[i].size()+1);

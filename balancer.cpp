@@ -388,6 +388,7 @@ int main(int argc, char const *argv[])
     char command[CONFIG_LINE_BUFFER_SIZE] = {0};
     //char hello[CONFIG_LINE_BUFFER_SIZE] = "Hello from server";
     char new_command[CONFIG_LINE_BUFFER_SIZE];
+    char flushsocket[22] = "--flush-column=socket";
     //char car;
     std::ostringstream np;
 
@@ -553,7 +554,7 @@ int main(int argc, char const *argv[])
     	    system(new_command);
             //string filename2;
             if (DEBUG) printf ("\n\n *** numpart: %d, numgpus: %d,  mod: %d \n", numpart, numgpus, numpart%numgpus);
-            if ((numpart % numgpus) == 0) { //last GPU
+            if ((strstr(new_command, flushsocket)==NULL)) { //last GPU
                np.str("");
                np.clear();
                np << numpart;

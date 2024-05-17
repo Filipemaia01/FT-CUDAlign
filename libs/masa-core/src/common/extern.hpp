@@ -19,6 +19,7 @@ int dynamic;
 int leftdyn;
 int rightdyn;
 int lastit;
+int lastgpu;
 string wdir;
 
 FILE * dbabp;
