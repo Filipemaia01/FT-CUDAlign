@@ -215,7 +215,7 @@ void update_split (int vgpu) {
     split_fail = split_total/config.gpus;
     remainder = split_total%config.gpus;
 
-    for(j=part-1; j<vgpu; j++) {
+    for(j=part; j<vgpu; j++) {
         if(k<=remainder) {
             splitnew[j] = split_fail+1;
         }
@@ -241,7 +241,7 @@ void update_config_info(int* i, int kk, int *vgpu) {
     }
     dyn--;
     config.gpus--;
-    *vgpu = part-1 + (config.breakpoints+1-kk)*config.gpus;
+    *vgpu = part + (config.breakpoints+1-kk)*config.gpus;
     printf("@F: New vgpu: %d\n", *vgpu);
     update_split(*vgpu);
     *i = *i-1;
@@ -445,7 +445,7 @@ void killprocess(char process[]) {
 }
 
 void restartbalancers(char workdir[]) {
-    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88"/*, ignoreip[15] = "192.168.0.158"*/;
+    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88", ignoreip[15] = "192.168.0.89";
     int i;
     //sleep(3);
 
@@ -469,9 +469,9 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, "; bash\"");
         }
         //printf("Command %d: %s\n", i, balancers_command);
-        //if(strcmp(config.ips[i], ip)) {
+        if(strcmp(config.ips[i], ignoreip)) {
             system(balancers_command);
-        //}
+        }
         strcpy(balancers_command, "");
     }
 }
@@ -619,8 +619,8 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                     printf("Restarting from begining\n");
                     *kk=0;
                     *valid_it = 0;
-                    part = 1;
-                    *valid_part = 1;
+                    part = 0;
+                    *valid_part = 0;
                     recoverfromfailure(workdir, c_part, *kk, vgpu);
                     *socketinitiated = 0;
                 }
@@ -719,7 +719,7 @@ int main(int argc, char *argv[]) {
     long long int sum = 0;
     long long int sumcheck = 0;
     int valid_part = 1;
-    part = 1;
+    part = 0;
     int valread = 0;
     int valid_it = 0, failed=0, exec_finished=0;
     int kk = 0;
@@ -820,6 +820,7 @@ int main(int argc, char *argv[]) {
         }
         last_commands.clear();
        for (i=0; i<config.gpus;i++) {
+          part++; 
     	  //part = kk*config.gpus + i + 1;
           //command.str("");
           command.clear();
@@ -935,7 +936,6 @@ int main(int argc, char *argv[]) {
     	  send(config.sock[i], com, strlen(com), 0);
           last_commands.push_back(com);
           printf( "\n ### Controller: exec message sent to GPU %d \n", i);
-          part++; 
        }	
        
       if (!socketinitiated) {
@@ -1041,7 +1041,7 @@ int main(int argc, char *argv[]) {
           else
               unbalanced = 1; 
     	  }
-    	  for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
+    	  for (int kkk=0;kkk<vgpu;kkk++)
              printf ("Before rebalance: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
           // printf("part: %d \n", part);
           // rebalance weights based on current counters
@@ -1054,7 +1054,7 @@ int main(int argc, char *argv[]) {
           //FILE * fpr;
           //fpr = fopen ("rebalance.txt","at");
  
-          for (int kkk=0;kkk<config.gpus*(config.breakpoints+1);kkk++)
+          for (int kkk=0;kkk<vgpu;kkk++)
              fprintf (fpr, "After rebalance: splitnew[%d]:  %d \n", kkk, splitnew[kkk]);
 
 

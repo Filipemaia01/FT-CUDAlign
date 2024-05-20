@@ -33,7 +33,6 @@
 #define DEBUG (0)
 
 SocketCellsWriter::SocketCellsWriter(string hostname, int port, string shared_path) {
-    this->close_socket_path = shared_path+"/closesocket.txt";
     this->failure_signal_path = shared_path+"/failure.txt";
     this->hostname = hostname;
     this->port = port;
@@ -47,9 +46,6 @@ SocketCellsWriter::~SocketCellsWriter() {
 
 void SocketCellsWriter::close() {
     waitForFinishMessage();
-    FILE* close_socket;
-    close_socket = fopen(close_socket_path.c_str(), "wb");
-    fclose(close_socket);
     fprintf(stderr, "SocketCellsWriter::close(): %d\n", socketfd);
     if (socketfd != -1) {
         ::close(socketfd);

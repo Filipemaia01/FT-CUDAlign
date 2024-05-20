@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-URLCellsReader::URLCellsReader(string url, string signal_path, string shared_path) {
+URLCellsReader::URLCellsReader(string url, string shared_path) {
 	int pos1 = url.find_first_of("://");
 	if (pos1 == -1) {
 		fprintf(stderr, "URLCellsReader: Wrong URL format: %s\n", url.c_str());
@@ -49,7 +49,7 @@ URLCellsReader::URLCellsReader(string url, string signal_path, string shared_pat
 		} else {
 			hostname = param;
 		}
-		reader = new SocketCellsReader(hostname, port, signal_path, shared_path);
+		reader = new SocketCellsReader(hostname, port, shared_path);
 	} else if (type == "file") {
 		reader = new FileCellsReader(param);
 	} else if (type == "null") {

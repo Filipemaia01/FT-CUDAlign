@@ -36,7 +36,6 @@ public:
 	virtual int writeInt(global_score_t* score);
 private:
     string hostname;
-	string close_socket_path;
 	string failure_signal_path;
     int port;
     int socketfd;

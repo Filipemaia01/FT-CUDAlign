@@ -200,9 +200,8 @@ static void getBorderCells(Job* job, SpecialRowsPartition* sraPartition,
 		if (firstColumn != NULL) delete firstColumn;
 
 		int id0 = job->getAlignmentParams()->getSequence(1)->getTrimStart()-1;
-		string signal_path = job->getAlignerPool()->getMsgFile("stage1", id0) + ".signal";
 
-		CellsReader* reader = new URLCellsReader(job->load_column_url, signal_path, shared_path);
+		CellsReader* reader = new URLCellsReader(job->load_column_url, shared_path);
 		int limit = job->getBufferLimit();
 		if (job->getPoolWaitId() >= 0) {
 			limit = job->getSequence(0)->getLen();

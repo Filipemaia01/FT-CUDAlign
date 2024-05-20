@@ -30,12 +30,10 @@
 #include <errno.h>
 #include <netdb.h> //hostent
 
-SocketCellsReader::SocketCellsReader(string hostname, int port, string signal_path, string shared_path) {
+SocketCellsReader::SocketCellsReader(string hostname, int port, string shared_path) {
     this->hostname = hostname;
     this->port = port;
     this->socketfd = -1;
-    this->signal_path = signal_path;
-    this->close_socket_path = shared_path+"/closesocket.txt";
     this->failure_signal_path = shared_path+"/failure.txt";
     removeOldFiles();
     init();
@@ -46,8 +44,6 @@ SocketCellsReader::~SocketCellsReader() {
 }
 
 void SocketCellsReader::removeOldFiles() {
-    //remove(signal_path.c_str());
-    remove(close_socket_path.c_str());
     remove(failure_signal_path.c_str());
 }
 
@@ -105,24 +101,10 @@ int SocketCellsReader::read(cell_t* buf, int len) {
             sleep(2);
         } 
         if (tries == 0) {
-            end_exec_signal = fopen(this->signal_path.c_str(), "rt"); //file created when previous GPU finishes it's execution
-            close_socket = fopen(this->close_socket_path.c_str(), "rt"); //file create when previous GPU closes socket connection
-
-            signalOk = false;
-            if (end_exec_signal!=NULL) {
-                signalOk = true;
-                fclose(end_exec_signal);
-            }
-            else if(close_socket!=NULL) {
-                signalOk = true;
-                fclose(close_socket);
-            }
-            if(!signalOk) {
-                printf("Connection Lost!\n");
-                ::close(socketfd);
-                failureSignal();
-                break;
-            }
+            printf("Connection Lost!\n");
+            ::close(socketfd);
+            failureSignal();
+            break;
         }
         if (ret == -1) {
         	::close(socketfd);

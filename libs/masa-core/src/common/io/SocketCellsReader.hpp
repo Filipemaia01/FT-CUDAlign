@@ -28,7 +28,7 @@ using namespace std;
 
 class SocketCellsReader : public CellsReader {
 public:
-	SocketCellsReader(string hostname, int port, string signal_path, string shared_path);
+	SocketCellsReader(string hostname, int port, string shared_path);
 	virtual ~SocketCellsReader();
 	virtual void close();
 
@@ -38,8 +38,6 @@ public:
 
 private:
     string hostname;
-	string signal_path;
-    string close_socket_path;
 	string failure_signal_path;
     int port;
     int socketfd;
