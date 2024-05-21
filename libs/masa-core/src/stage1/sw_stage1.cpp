@@ -604,7 +604,7 @@ int stage1(Job* job) {
 		crosspointsFile->close();
 		delete crosspointsFile;
 
-		if (dynamic != 0) {
+		if (lastgpu && dynamic != 0) {
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
@@ -621,7 +621,7 @@ int stage1(Job* job) {
 			delete lastColumn;
 		}
 
-		if (dynamic != 0) {
+		if (lastgpu && dynamic != 0) {
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
@@ -641,7 +641,7 @@ int stage1(Job* job) {
 			delete crosspointsFile;
 		}
 
-		if (dynamic != 0) {
+		if (lastgpu && dynamic != 0) {
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
@@ -658,7 +658,7 @@ int stage1(Job* job) {
 			delete lastColumn;
 		}
 
-		if (dynamic != 0) {
+		if (lastgpu && dynamic != 0) {
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
