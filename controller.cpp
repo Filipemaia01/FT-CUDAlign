@@ -210,25 +210,31 @@ int read_config_file(char* config_filename) {
 }
 
 void update_split (int vgpu) {
+    /* This function takes the sum of all splits from the first breakpoint and
+    * divide it as even as possible among the remaining GPU (in case of failure).
+    */
     int k=1, j, split_fail, remainder=0;
 
     split_fail = split_total/config.gpus;
     remainder = split_total%config.gpus;
 
     for(j=part; j<vgpu; j++) {
-        if(k<=remainder) {
+        if(k<=remainder) { //If the division is not exact, then the reamining is redistributed among the first GPUs
             splitnew[j] = split_fail+1;
         }
         else {
             splitnew[j] = split_fail;
         }
-        k++;
+        k++; //k keeps track of the amount of splits that must be +1 in order for the remainder to be equally distributed.
         printf("@F: splitnew[%d] = %d\n", j, splitnew[j]);
         if(k==config.gpus) {k=1;}
     }
 }
 
 void update_config_info(int* i, int kk, int *vgpu) {
+    /* This function updates the GPUs info in case a GPU does not come back from failure
+    * It also updates vgpu, which represents the total number of parts to be executed.
+    */
     int j;
 
     printf("Could not connect to server %s\n", config.ips[*i]);
@@ -248,6 +254,9 @@ void update_config_info(int* i, int kk, int *vgpu) {
 }
 
 int connect_agents (int kk, int* vgpu) {
+    /*This function tries to connect to every GPU on the configuration file. If it does not connect until timout,
+    * it is assumed that it is not going to comeback and so the GPU info must be update to delete the failed GPU
+    */
 
 	struct sockaddr_in agent_addr;
     int i, j, max_retries=3, retries=0, ok=0;
@@ -416,24 +425,26 @@ void closeterminals() {
             strcpy(close_terminals, "");
         }
     }
-    //sleep(3);
     strcpy(close_terminals, "pkill bash");
     printf("Last close terminals command: %s\n", close_terminals);
     system(close_terminals);
 }
 
 void killprocess(char process[]) {
+    /*This function kills a process sent in the parameters. It is currently used to kill both
+    * CUDAlign and balancers on each GPU connected.
+    */
     int i;
     char kill_comand[50], myIP[15] = "192.168.0.88", close_terminals[50]=""; //TODO: identify this GPU's IP and hostname of each GPU
 
     for (i=0; i<config.gpus; i++) {
-        if (strcmp(config.ips[i], myIP)) {
+        if (strcmp(config.ips[i], myIP)) { //Not my IP
             strcpy(kill_comand, "ssh laicoadm@");
             strcat(kill_comand, config.ips[i]);
-            strcat(kill_comand, " pkill ");
+            strcat(kill_comand, " pkill "); // pkill kills a process based on it's name
             strcat(kill_comand, process);
         }
-        else {
+        else { //My IP
             strcpy(kill_comand, "pkill ");
             strcat(kill_comand, process);
         }
@@ -445,13 +456,17 @@ void killprocess(char process[]) {
 }
 
 void restartbalancers(char workdir[]) {
+    /*This function restart all balancers connected to the controller.
+    * After a failure, all balancers are killed and then restarted so the execution returns
+    * from the last complete breakpoint and finishes automatically.
+    */
     char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88", ignoreip[15] = "192.168.0.158";
     int i;
-    //sleep(3);
 
     for(i=0; i<config.gpus; i++) {
         sprintf(str_number, "%d", config.gpu_number[i]);
         if(strcmp(config.ips[i], myIP)) { //Not my ip
+            //gnome-terminal -- bash -c 'ssh laicoadm@ip "cd Documentos/Filipe/FT-dynBP;./balancer str_number workdir";exec bash'
             strcpy(balancers_command, "gnome-terminal -- bash -c 'ssh laicoadm@");
             strcat(balancers_command, config.ips[i]);
             strcat(balancers_command, " \"cd Documentos/Filipe/FT-dynBP;./balancer "); //ls is here just to not start the command with cd (error)
@@ -477,10 +492,14 @@ void restartbalancers(char workdir[]) {
 }
 
 int detectfailure() {
+    /*This function waits until either CUDAlign identifies a failure and writes a file signalizing it or 
+    * the balancer sends a message (READ or END) confirming that CUDAlign reached a certain point of
+    * execution (80% or 100%).
+    */
     int qtd_bytes=0, ret_access=-1, valread=0;
     char recmessage[10] = {0};
 
-    while (qtd_bytes == 0 && ret_access!=0) {
+    while (qtd_bytes == 0 && ret_access!=0) { //BW until the failure file is created or balancer sends a signal
         ioctl(socketfdwrite, FIONREAD, &qtd_bytes);
         ret_access = access(failure_path, F_OK);
         usleep(100);
@@ -499,6 +518,13 @@ int detectfailure() {
 }
 
 int isBkptValid (char breakpoint_path[], char sequence_path[]) {
+    /*This function checks which of the two last breakpoints is valid.
+    * To do this, it compares the vertical sequence and breakpoint sizes.
+    * Of course, the breakpoint contains cells as the sequence contains characters,
+    * so in order to compare the amount of cells processed, the breakpoint size must
+    * be divided by the cell size.
+    */
+
     FILE* breakpoint;
     FILE* vertical_sequence;
     long int breakpoint_size=0, sequence_size=0;
@@ -506,7 +532,6 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
 
     printf("@F: Checking breakpoint %s\n", breakpoint_path);
     //get breakpoint size ####################################################
-    //sleep(10);
     breakpoint = fopen(breakpoint_path, "rb");
     if (breakpoint == NULL) {
         fprintf(stderr, "Failed to open config file %s\n", breakpoint_path);
@@ -548,6 +573,12 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
 }
 
 int finishconfirmation (char workdir[], char cpart[]) {
+    /*After writing the dynend file, CUDAlign deletes it's socket and finishes saving some
+    * data structures to disk. In the meantime, failure may occur and so, to detect the failure
+    * the controller deletes the first dynend and waits for another to be created, which happens
+    * after CUDAlign finishes all of its execution. If there is a timeout, the controller assumes
+    * that a failure has occurred.
+    */
     char endfile_path[200];
     int tries=0;
 
@@ -557,7 +588,7 @@ int finishconfirmation (char workdir[], char cpart[]) {
         strcat(endfile_path, cpart);
         strcat(endfile_path, "/dynend.txt");
 
-    if(access(endfile_path, F_OK)!=0) { //dynend was created
+    if(access(endfile_path, F_OK)!=0) { //dynend was not created in the first execution
         return 0;
     }
     else {
@@ -589,7 +620,7 @@ void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
         remove(ctrl_path);
         strcpy(ctrl_path, "");
     }*/
-    
+    // deleting dynread and dynend from failed execution
     strcpy(ctrl_path, workdir);
     strcat(ctrl_path, "/work");
     strcat(ctrl_path, cpart);
@@ -603,6 +634,7 @@ void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
     strcat(ctrl_path, "/dynend.txt");
     remove(ctrl_path);
     
+    //dealing with the failure
     printf("\n ### Killing all instances of CUDAlign ###\n");
     killprocess("cudalign");
     killprocess("balancer");
@@ -614,12 +646,16 @@ void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
 }
 
 int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char cpart[], int* socketinitiated, int* valid_part, int*vgpu) {
+    /*This function updates the next and the last complete iteration based on the breakpoint validation
+    * if the last bkpt failed but the previous is valid, a failure occurred and so the iteration must return
+    * to valid_it, unless it is the first iteration. If the last two breakpoint are incomplete, the controller
+    * returns an error.
+    */
     if (!*failed) {
         *failed = finishconfirmation(workdir, cpart);
     }
     if(*kk > 0 || *failed) {
         *failed=0;
-        //sleep(10);
         if(isBkptValid(last_breakpoints[1], config.seq0)){
             *valid_it = *kk;
             *valid_part = part;
@@ -1087,51 +1123,8 @@ int main(int argc, char *argv[]) {
           }
           //sleep(10);
      }
-    
-    /*
-    while(!exec_finished) {
-        if(failed) {
-            recoverfromfailure(WORKDIR, cpart, kk, &vgpu);
-            for (i=0; i<config.gpus;i++) {
-                char com[last_commands[i].size() + 1];
-                last_commands[i].copy(com,last_commands[i].size()+1);
-                com[last_commands[i].size()] = '\0';
-                send(config.sock[i], com, strlen(com), 0);
-                cout << last_commands[i] << std::endl;
-                printf( "\n ### Controller: exec message sent to GPU %d \n", i);
-            }
-            if (!socketinitiated) {
-                initSocketWrite();
-                socketinitiated = 1;
-            }
-            failed=0;
-        }
-           // wait for socket message from balancer which indicates last GPU finished its job
-        printf ("\n ### Controller: waiting for balancer READ message. \n");
-
-        if((failed=detectfailure())){
-            socketinitiated=0;
-            continue;
-        } 
-        
-        // wait for socket message from balancer which indicates last GPU finished its job
-        printf ("\n ### Controller: waiting for balancer END message. \n");
-
-        if((failed=detectfailure())){
-            socketinitiated=0;
-            continue;
-        }
-
-        if(!failed) {
-            exec_finished = 1;
-        }
-    }*/
-
 
     fflush(stdout);
-
-    
-
     close(socketfdwrite);
 
     // end timer 

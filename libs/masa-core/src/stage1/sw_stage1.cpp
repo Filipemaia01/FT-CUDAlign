@@ -622,6 +622,9 @@ int stage1(Job* job) {
 		}
 
 		if (lastgpu && dynamic != 0) {
+			/*writes dynend for the second time to detect failure between the first and last
+			* Column deletion (check controller's finish confirmation function for more info)
+			*/
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
@@ -659,6 +662,9 @@ int stage1(Job* job) {
 		}
 
 		if (lastgpu && dynamic != 0) {
+			/*writes dynend for the second time to detect failure between the first and last
+			* Column deletion (check controller's finish confirmation function for more info)
+			*/
             string filenamedyn = wdir + "/dynend.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");

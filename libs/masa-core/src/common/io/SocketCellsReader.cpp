@@ -61,6 +61,7 @@ int SocketCellsReader::getType() {
 }
 
 void SocketCellsReader::failureSignal() {
+    /*This function signalizes a failure to the controller by writing a failure.txt file in the shared dir.*/
     FILE* fd_failure;
 
     if(access(failure_signal_path.c_str(), F_OK)!=0) { //failure file was not created
@@ -73,8 +74,8 @@ void SocketCellsReader::failureSignal() {
 
 void SocketCellsReader::sendFinishMessage() {
     /* This function sends a message to the previous GPU sinalizing the end of it's execution
-    *  The main goal of this is to detect the failure and identifying if it's indeed a failure
-    *  or just the end of the execution
+    *  The main goal of this is for the SCW to detect the failure after it has finished sending cells
+    * and identifying if it's indeed a failure or just the end of the execution
     */
     char verification[10]="finished";
     printf("Sending finished message to the previous GPU\n");
@@ -90,9 +91,9 @@ int SocketCellsReader::read(cell_t* buf, int len) {
     	int ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), 0);
 
     /* This region of the function was created in order to check the return of the recv function.
-    *  If the return is 0, it means that nothing is being sent and, therefore, the socket may have been 
-    *  disconnected. The GPU only blocks, waiting for a reconnection, if the GPU from which it receieves
-    *  it's cells doesn't send any cells and if it hasn't ended it's execution(checks a signal file).
+    *  If the return is 0, it means that a package of 0 bytes has been received, which probably
+    * indicates a disconnection. If the socket was in fact closed, after some tries, the return
+    * of recv will be -1, which means for sure that the connection was closed.
     */
         while(ret == 0 && tries > 0) { //if amount of bytes received is zero, most likely the socket has been closed
             ret = recv(socketfd, (void*)(((unsigned char*)buf)+pos), len*sizeof(cell_t), MSG_NOSIGNAL);

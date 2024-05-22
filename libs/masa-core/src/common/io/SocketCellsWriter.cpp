@@ -95,6 +95,7 @@ void SocketCellsWriter::waitForFinishMessage() {
 }
 
 void SocketCellsWriter::failureSignal() {
+    /*This function signalizes a failure to the controller by writing a failure.txt file in the shared dir.*/
     FILE* fd_failure;
 
     if(access(failure_signal_path.c_str(), F_OK)!=0) { //failure file was not created
@@ -108,11 +109,11 @@ void SocketCellsWriter::failureSignal() {
 int SocketCellsWriter::write(const cell_t* buf, int len) {
     int tries=3, ret;
 
-    /* This function was modified in order to detect a fail on the receiever GPU. In order to do this,
-    *  the return of the send is verified. If it is -1 (the flag errno also raises), it means that the
+    /* This function was modified in order to detect a fail on the receiver GPU. In order to do this,
+    *  the return of the send is verified. If it is -1 (the flag errno also raises), which means that the
     *  socket has disconnected. The problem is that the -1 return only happens after the third try.
     *  Because of this property, the function isopen checks if the connection is available to write.
-    *  If isopen or ret=-1 are identified, the tries is decremented untilsend comes back to normal or
+    *  If isopen or ret=-1 are identified, the tries is decremented until send comes back to normal or
     *  the 3 tries are over.
     */
 
@@ -145,7 +146,6 @@ int SocketCellsWriter::writeInt(global_score_t* score) {
     }
     return ret;
 }
-
 
 void SocketCellsWriter::init() {
     int rc;
