@@ -102,7 +102,7 @@ int SocketCellsReader::read(cell_t* buf, int len) {
             sleep(2);
         } 
         if (tries == 0) {
-            printf("Connection Lost!\n");
+            printf("~~~~Connection Lost!~~~~\n");
             ::close(socketfd);
             failureSignal();
             break;

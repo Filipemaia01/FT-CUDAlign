@@ -460,7 +460,7 @@ void restartbalancers(char workdir[]) {
     * After a failure, all balancers are killed and then restarted so the execution returns
     * from the last complete breakpoint and finishes automatically.
     */
-    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88", ignoreip[15] = "192.168.0.158";
+    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88", ignoreip[15] = "192.168.0.89";
     int i;
 
     for(i=0; i<config.gpus; i++) {
@@ -484,9 +484,9 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, "; bash\"");
         }
         //printf("Command %d: %s\n", i, balancers_command);
-        if(strcmp(config.ips[i], ignoreip)) {
+        //if(strcmp(config.ips[i], ignoreip)) {
             system(balancers_command);
-        }
+        //}
         strcpy(balancers_command, "");
     }
 }
@@ -532,6 +532,9 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
 
     printf("@F: Checking breakpoint %s\n", breakpoint_path);
     //get breakpoint size ####################################################
+    if (strcmp(breakpoint_path, "unavailable")==0) {
+        return 0;
+    }
     breakpoint = fopen(breakpoint_path, "rb");
     if (breakpoint == NULL) {
         fprintf(stderr, "Failed to open config file %s\n", breakpoint_path);
@@ -607,12 +610,13 @@ int finishconfirmation (char workdir[], char cpart[]) {
     }
 }
 
-void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
+void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu, char config_file[]) {
     char ctrl_path[200];
     //int i;
     //char c_part[100];
     /*for(i=1; i<=config.gpus; i++) {
-        strcpy(ctrl_path, workdir);
+        strcpy(ctrl_path, "rm -rf ");
+        strcat(ctrl_path, workdir);
         strcat(ctrl_path, "/work");
         sprintf(c_part, "%d", (i+kk*config.gpus));
         strcat(ctrl_path, c_part);
@@ -638,6 +642,7 @@ void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
     printf("\n ### Killing all instances of CUDAlign ###\n");
     killprocess("cudalign");
     killprocess("balancer");
+    read_config_file(config_file);
     //closeterminals();
     restartbalancers(workdir);
     close_agents();
@@ -645,7 +650,7 @@ void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu) {
     remove(failure_path);
 }
 
-int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char cpart[], int* socketinitiated, int* valid_part, int*vgpu) {
+int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], int* valid_it, char workdir[], char cpart[], int* socketinitiated, int* valid_part, int*vgpu, char config_file[]) {
     /*This function updates the next and the last complete iteration based on the breakpoint validation
     * if the last bkpt failed but the previous is valid, a failure occurred and so the iteration must return
     * to valid_it, unless it is the first iteration. If the last two breakpoint are incomplete, the controller
@@ -669,7 +674,7 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                     *valid_it = 0;
                     part = 0;
                     *valid_part = 0;
-                    recoverfromfailure(workdir, cpart, *kk, vgpu);
+                    recoverfromfailure(workdir, cpart, *kk, vgpu, config_file);
                     *socketinitiated = 0;
                 }
                 else{
@@ -685,7 +690,7 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                 strcpy(last_breakpoints[1], last_breakpoints[0]);
                 strcpy(last_breakpoints[0], "");
                 strcpy(last_breakpoints[0], "unavailable");
-                recoverfromfailure(workdir, cpart, *kk, vgpu);
+                recoverfromfailure(workdir, cpart, *kk, vgpu, config_file);
                 *socketinitiated = 0;
             }
         }
@@ -778,6 +783,7 @@ int main(int argc, char *argv[]) {
 
     char last_breakpoints[2][200]; //first element stores the previous bkpt name. Second element stores the latest bkpt name.
     char cpart[100];
+    char config_file[100];
 
     char WORKDIR[100];
     strcpy (WORKDIR,argv[2]);
@@ -786,6 +792,7 @@ int main(int argc, char *argv[]) {
     strcat(failure_path, "/share/failure.txt");
     strcpy(last_breakpoints[0], "unavailable");
     strcpy(last_breakpoints[1], "unavailable");
+    strcpy(config_file, argv[1]);
 
     char recmessage[10] = {0};
 
@@ -863,7 +870,7 @@ int main(int argc, char *argv[]) {
 
     // send initial command execution
     for (kk=0; kk<=config.breakpoints; kk++) {
-        if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, cpart, &socketinitiated, &valid_part, &vgpu)){
+        if(!definenextiteration(&failed, &kk, last_breakpoints, &valid_it, WORKDIR, cpart, &socketinitiated, &valid_part, &vgpu, config_file)){
             return 0;
         }
        for (i=0; i<config.gpus;i++) {
@@ -967,7 +974,7 @@ int main(int argc, char *argv[]) {
           else { //pseudo breakpoint from last iteration. It is here just to detect failure on last iteration.
             strcpy(last_breakpoints[0], "");
             strcpy(last_breakpoints[0], last_breakpoints[1]);
-            strcpy(last_breakpoints[1], "last_iteration_failed");
+            strcpy(last_breakpoints[1], "unavailable");
             printf("\n@F:Last breakpoint [%d]: %s\n", i, last_breakpoints[1]);
           }
     	
