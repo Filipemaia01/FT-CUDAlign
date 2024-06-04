@@ -192,7 +192,7 @@ static void getBorderCells(Job* job, SpecialRowsPartition* sraPartition,
 		lastColumn = tmp;
 	}
 	else{
-		printf("#### @F: LAST GPU! ####\n");
+		//printf("#### @F: LAST GPU! ####\n");
 		lastgpu=1;
 	}
 
@@ -535,13 +535,10 @@ int stage1(Job* job) {
 	if (job->getAlignerPool() != NULL) {
 		if (!job->getAlignerPool()->isFirstNode()) {
 			score_t score = job->getAlignerPool()->receiveScore();
-			fprintf(stderr, "@F: Adding BestScore\n");
 			bestScoreList->add(score.i, score.j, score.score);
 		}
 	}
-	fprintf(stderr, "@F: getBestScore\n");
 	score_t best_score = bestScoreList->getBestScore();
-	fprintf(stderr, "@F: Received the best score\n");
 
 	if (best_score.score > job->bestglobalscore.score) {
 		job->bestglobalscore.score = best_score.score;
@@ -550,7 +547,6 @@ int stage1(Job* job) {
 		job->bestglobalscore.node = job->node;
 	}
 
-	fprintf(stderr, "@F: Going to write execution status\n");
 
 	fprintf(stats, "======= Execution Status =======\n");
 	fprintf(stats, "   Best Score: %d\n", best_score.score);
@@ -587,7 +583,6 @@ int stage1(Job* job) {
 	if (job->getAlignerPool() != NULL) {
 		crosspoint_t c;
 		if (!job->getAlignerPool()->isLastNode()) {
-			fprintf(stderr, "@F: Not last node\n");
 			job->getAlignerPool()->dispatchScore(best_score);
 			best_score = job->getAlignerPool()->getBestNodeScore();
 		}
@@ -625,7 +620,7 @@ int stage1(Job* job) {
 			/*writes dynend for the second time to detect failure between the first and last
 			* Column deletion (check controller's finish confirmation function for more info)
 			*/
-            string filenamedyn = wdir + "/dynend.txt";
+            string filenamedyn = wdir + "/dynend1.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
             fclose (dbdyn);
@@ -665,7 +660,7 @@ int stage1(Job* job) {
 			/*writes dynend for the second time to detect failure between the first and last
 			* Column deletion (check controller's finish confirmation function for more info)
 			*/
-            string filenamedyn = wdir + "/dynend.txt";
+            string filenamedyn = wdir + "/dynend1.txt";
             dbdyn = fopen(filenamedyn.c_str(),"wt");
             fprintf(dbdyn,"END");
             fclose (dbdyn);

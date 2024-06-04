@@ -53,7 +53,7 @@ URLCellsWriter::URLCellsWriter(string url, string shared_path) {
 		writer = new SocketCellsWriter(hostname, port, shared_path);
 	} else if (type == "file") {
 		lastgpu = 1;
-		printf("#### @F: LAST GPU! ####\n");
+		//printf("#### @F: LAST GPU! ####\n");
 		writer = new FileCellsWriter(param);
 	} else if (type == "null") {
 		writer = new DummyCellsWriter();

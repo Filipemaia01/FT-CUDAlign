@@ -82,6 +82,15 @@ char failure_path[200];
 int part;
 int split_total=0;
 int vgpu;
+/* To execute this controller version, the user must:
+* 1) Fill the controller's IP in myIP.
+* 2) The username of all machines must be the same, have the same ID and filled in the username variable.
+* The machines must also be added to the same group, so that the NFS will identify them as the same node.
+* 3) The path from the root to the FT-dynBP must be the same in all machines and filled in the path variable,
+* located in the restartbalancers function
+*/
+char myIP[15] = "192.168.0.88";
+char username[30] = "laicoadm";
 
 int read_int_from_config_line(char* config_line) {
     char prm_name[MAX_CONFIG_VARIABLE_LEN];
@@ -226,7 +235,6 @@ void update_split (int vgpu) {
             splitnew[j] = split_fail;
         }
         k++; //k keeps track of the amount of splits that must be +1 in order for the remainder to be equally distributed.
-        printf("@F: splitnew[%d] = %d\n", j, splitnew[j]);
         if(k==config.gpus) {k=1;}
     }
 }
@@ -248,7 +256,6 @@ void update_config_info(int* i, int kk, int *vgpu) {
     dyn--;
     config.gpus--;
     *vgpu = part + (config.breakpoints+1-kk)*config.gpus;
-    printf("@F: New vgpu: %d\n", *vgpu);
     update_split(*vgpu);
     *i = *i-1;
 }
@@ -412,7 +419,7 @@ float readlastline(string filename)
 
 void closeterminals() {
     int i;
-    char myIP[15] = "192.168.0.88", close_terminals[50];
+    char close_terminals[50];
 
     for(i=0; i<config.gpus; i++) {
         if(strcmp(config.ips[i],myIP)){
@@ -435,11 +442,13 @@ void killprocess(char process[]) {
     * CUDAlign and balancers on each GPU connected.
     */
     int i;
-    char kill_comand[50], myIP[15] = "192.168.0.88", close_terminals[50]=""; //TODO: identify this GPU's IP and hostname of each GPU
+    char kill_comand[100]; //TODO: identify this GPU's IP and hostname of each GPU
 
     for (i=0; i<config.gpus; i++) {
         if (strcmp(config.ips[i], myIP)) { //Not my IP
-            strcpy(kill_comand, "ssh laicoadm@");
+            strcpy(kill_comand, "ssh ");
+            strcat(kill_comand, username);
+            strcat(kill_comand, "@");
             strcat(kill_comand, config.ips[i]);
             strcat(kill_comand, " pkill "); // pkill kills a process based on it's name
             strcat(kill_comand, process);
@@ -449,7 +458,6 @@ void killprocess(char process[]) {
             strcat(kill_comand, process);
         }
         
-        //printf("Kill comand: %s\n", kill_comand);
         system(kill_comand);
         strcpy(kill_comand, "");
     }
@@ -460,16 +468,21 @@ void restartbalancers(char workdir[]) {
     * After a failure, all balancers are killed and then restarted so the execution returns
     * from the last complete breakpoint and finishes automatically.
     */
-    char balancers_command[150]="", str_number[20], myIP[15] = "192.168.0.88", ignoreip[15] = "192.168.0.89";
+    char balancers_command[300]="", str_number[20], ignoreip[15] = "192.168.0.89";
+    char path[100]="Documentos/Filipe/FT-dynBP";
     int i;
 
     for(i=0; i<config.gpus; i++) {
         sprintf(str_number, "%d", config.gpu_number[i]);
         if(strcmp(config.ips[i], myIP)) { //Not my ip
             //gnome-terminal -- bash -c 'ssh laicoadm@ip "cd Documentos/Filipe/FT-dynBP;./balancer str_number workdir";exec bash'
-            strcpy(balancers_command, "gnome-terminal -- bash -c 'ssh laicoadm@");
+            strcpy(balancers_command, "gnome-terminal -- bash -c 'ssh ");
+            strcat(balancers_command, username);
+            strcat(balancers_command, "@");
             strcat(balancers_command, config.ips[i]);
-            strcat(balancers_command, " \"cd Documentos/Filipe/FT-dynBP;./balancer "); //ls is here just to not start the command with cd (error)
+            strcat(balancers_command, " \"cd ");
+            strcat(balancers_command, path);
+            strcat(balancers_command, ";./balancer ");
             strcat(balancers_command, str_number);
             strcat(balancers_command, " ");
             strcat(balancers_command, workdir);
@@ -483,10 +496,9 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, workdir);
             strcat(balancers_command, "; bash\"");
         }
-        //printf("Command %d: %s\n", i, balancers_command);
-        //if(strcmp(config.ips[i], ignoreip)) {
+        if(strcmp(config.ips[i], ignoreip)) {
             system(balancers_command);
-        //}
+        }
         strcpy(balancers_command, "");
     }
 }
@@ -530,7 +542,7 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
     long int breakpoint_size=0, sequence_size=0;
     char i, line[500];
 
-    printf("@F: Checking breakpoint %s\n", breakpoint_path);
+    printf("Checking breakpoint %s\n", breakpoint_path);
     //get breakpoint size ####################################################
     if (strcmp(breakpoint_path, "unavailable")==0) {
         return 0;
@@ -578,24 +590,31 @@ int isBkptValid (char breakpoint_path[], char sequence_path[]) {
 int finishconfirmation (char workdir[], char cpart[]) {
     /*After writing the dynend file, CUDAlign deletes it's socket and finishes saving some
     * data structures to disk. In the meantime, failure may occur and so, to detect the failure
-    * the controller deletes the first dynend and waits for another to be created, which happens
+    * the controller deletes the first dynend and waits for dynend1 to be created, which happens
     * after CUDAlign finishes all of its execution. If there is a timeout, the controller assumes
     * that a failure has occurred.
+    * The dynend1 file is created to avoid a possible deadlock. For example: if CUDAlign creates
+    * the two files before the controller has the chance to remove the first.
     */
     char endfile_path[200];
     int tries=0;
 
-        strcpy(endfile_path, "");
-        strcpy(endfile_path, workdir);
-        strcat(endfile_path, "/work");
-        strcat(endfile_path, cpart);
-        strcat(endfile_path, "/dynend.txt");
+    strcpy(endfile_path, workdir);
+    strcat(endfile_path, "/work");
+    strcat(endfile_path, cpart);
+    strcat(endfile_path, "/dynend.txt");
 
     if(access(endfile_path, F_OK)!=0) { //dynend was not created in the first execution
         return 0;
     }
     else {
         remove(endfile_path);
+
+        strcpy(endfile_path, "");
+        strcpy(endfile_path, workdir);
+        strcat(endfile_path, "/work");
+        strcat(endfile_path, cpart);
+        strcat(endfile_path, "/dynend1.txt");
 
         while((access(endfile_path, F_OK)!=0) && tries < 15) { //waits for CUDAlign to recreate dynend (after destroying it's socket)
             printf("Waiting for CUDAlign's finish confirmation. Trying: [%d/15]\n", tries);
@@ -610,33 +629,21 @@ int finishconfirmation (char workdir[], char cpart[]) {
     }
 }
 
-void recoverfromfailure(char workdir[], char cpart [], int kk, int*vgpu, char config_file[]) {
-    char ctrl_path[200];
-    //int i;
-    //char c_part[100];
-    /*for(i=1; i<=config.gpus; i++) {
+void recoverfromfailure(char workdir[], int kk, int*vgpu, char config_file[], int valid_part) {
+    char ctrl_path[300];
+    int i;
+    char c_part[100];
+
+    //Deleting all the directories created in the failed execution
+    for(i=1; i<=config.gpus; i++) {
         strcpy(ctrl_path, "rm -rf ");
         strcat(ctrl_path, workdir);
         strcat(ctrl_path, "/work");
-        sprintf(c_part, "%d", (i+kk*config.gpus));
+        sprintf(c_part, "%d", (i+valid_part));
         strcat(ctrl_path, c_part);
-        printf("\n### @F: Directory removed: %s###\n", ctrl_path);
-        remove(ctrl_path);
+        system(ctrl_path);
         strcpy(ctrl_path, "");
-    }*/
-    // deleting dynread and dynend from failed execution
-    strcpy(ctrl_path, workdir);
-    strcat(ctrl_path, "/work");
-    strcat(ctrl_path, cpart);
-    strcat(ctrl_path, "/dynread.txt");
-    remove(ctrl_path);
-
-    strcpy(ctrl_path, "");
-    strcpy(ctrl_path, workdir);
-    strcat(ctrl_path, "/work");
-    strcat(ctrl_path, cpart);
-    strcat(ctrl_path, "/dynend.txt");
-    remove(ctrl_path);
+    }
     
     //dealing with the failure
     printf("\n ### Killing all instances of CUDAlign ###\n");
@@ -667,14 +674,14 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
         }
         else {
             if(!isBkptValid(last_breakpoints[0], config.seq0)){
-                printf("\n@F: Two last breakpoints corrupted\n");
+                printf("\n Two last breakpoints corrupted\n");
                 if(*kk<2) {
                     printf("Restarting from begining\n");
                     *kk=0;
                     *valid_it = 0;
                     part = 0;
                     *valid_part = 0;
-                    recoverfromfailure(workdir, cpart, *kk, vgpu, config_file);
+                    recoverfromfailure(workdir, *kk, vgpu, config_file, *valid_part);
                     *socketinitiated = 0;
                 }
                 else{
@@ -683,14 +690,14 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                 }
             }
             else {
-                printf("\n@F: Last Breakpoint is corrupted. Returning to previous breakpoint\n");
+                printf("\n Last Breakpoint is corrupted. Returning to previous breakpoint\n");
                 *kk=*valid_it;
                 part = *valid_part;
                 strcpy(last_breakpoints[1], "");
                 strcpy(last_breakpoints[1], last_breakpoints[0]);
                 strcpy(last_breakpoints[0], "");
                 strcpy(last_breakpoints[0], "unavailable");
-                recoverfromfailure(workdir, cpart, *kk, vgpu, config_file);
+                recoverfromfailure(workdir, *kk, vgpu, config_file, *valid_part);
                 *socketinitiated = 0;
             }
         }
@@ -964,7 +971,6 @@ int main(int argc, char *argv[]) {
                   sprintf(cpart, "%d", part);
                   strcat(last_breakpoints[1], cpart);
                   strcat(last_breakpoints[1], ".bin");
-                  printf("\n@F:Last breakpoint [%d]: %s\n", i, last_breakpoints[1]);
               }
     	      else {
                  ss <<  config.ports[i];
@@ -975,7 +981,6 @@ int main(int argc, char *argv[]) {
             strcpy(last_breakpoints[0], "");
             strcpy(last_breakpoints[0], last_breakpoints[1]);
             strcpy(last_breakpoints[1], "unavailable");
-            printf("\n@F:Last breakpoint [%d]: %s\n", i, last_breakpoints[1]);
           }
     	
     	  ss.str("");
