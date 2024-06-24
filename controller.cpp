@@ -85,7 +85,7 @@ int vgpu;
 /* To execute this controller version, the user must:
 * 1) Fill the controller's IP in myIP.
 * 2) The username of all machines must be the same, have the same ID and filled in the username variable.
-* The machines must also be added to the same group, so that the NFS will identify them as the same node.
+* The machines must also have the same group ID, so that the NFS will allow all permissions.
 * 3) The path from the root to the FT-dynBP must be the same in all machines and filled in the path variable,
 * located in the restartbalancers function
 */
@@ -289,7 +289,7 @@ int connect_agents (int kk, int* vgpu) {
         }
 
         while(retries < max_retries && !ok) {
-            //printf("ip: %s\n", config.ips[i]);
+            printf("ip: %s\n", config.ips[i]);
             if (connect(config.sock[i], (struct sockaddr *)&agent_addr, sizeof(agent_addr)) < 0) {
                 retries++;
  			    fprintf(stderr, "ERROR connecting to Server %s [Retry %d/%d]. %s\n", config.ips[i], retries, max_retries, strerror(errno));
@@ -452,6 +452,7 @@ void killprocess(char process[]) {
             strcat(kill_comand, config.ips[i]);
             strcat(kill_comand, " pkill "); // pkill kills a process based on it's name
             strcat(kill_comand, process);
+            //strcat(kill_comand, " &");
         }
         else { //My IP
             strcpy(kill_comand, "pkill ");
@@ -459,6 +460,7 @@ void killprocess(char process[]) {
         }
         
         system(kill_comand);
+        //printf("@F: Kill command: %s\n", kill_comand);
         strcpy(kill_comand, "");
     }
 }
@@ -468,7 +470,7 @@ void restartbalancers(char workdir[]) {
     * After a failure, all balancers are killed and then restarted so the execution returns
     * from the last complete breakpoint and finishes automatically.
     */
-    char balancers_command[300]="", str_number[20], ignoreip[15] = "192.168.0.89";
+    char balancers_command[300]="", str_number[20], ignoreip[15] = "192.168.0.158";
     char path[100]="Documentos/Filipe/FT-dynBP";
     int i;
 
@@ -496,9 +498,10 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, workdir);
             strcat(balancers_command, "; bash\"");
         }
-        if(strcmp(config.ips[i], ignoreip)) {
+        //if(strcmp(config.ips[i], ignoreip)) {
             system(balancers_command);
-        }
+            //printf("@F: Balancers command: %s\n", balancers_command);
+        //}
         strcpy(balancers_command, "");
     }
 }
@@ -651,6 +654,7 @@ void recoverfromfailure(char workdir[], int kk, int*vgpu, char config_file[], in
     killprocess("balancer");
     read_config_file(config_file);
     //closeterminals();
+    printf("\n ### Restarting Balancers ###\n");
     restartbalancers(workdir);
     close_agents();
     connect_agents(kk, vgpu);
@@ -674,9 +678,9 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
         }
         else {
             if(!isBkptValid(last_breakpoints[0], config.seq0)){
-                printf("\n Two last breakpoints corrupted\n");
+                printf("\nBreakpoint corrupted\n");
                 if(*kk<2) {
-                    printf("Restarting from begining\n");
+                    printf("Restarting First Iteration\n");
                     *kk=0;
                     *valid_it = 0;
                     part = 0;
@@ -690,7 +694,7 @@ int definenextiteration (int* failed, int* kk, char last_breakpoints[2][200], in
                 }
             }
             else {
-                printf("\n Last Breakpoint is corrupted. Returning to previous breakpoint\n");
+                printf("\nBreakpoint Corrupted. Returning to previous breakpoint\n");
                 *kk=*valid_it;
                 part = *valid_part;
                 strcpy(last_breakpoints[1], "");
