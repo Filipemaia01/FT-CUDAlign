@@ -1,0 +1,263 @@
+
+ *** DEBUG: Connected to Server 192.168.0.88
+Work Path: ../dirs_MASA/work3
+
+[1mMASA-CUDAlign 3.9.1.1024  -  GPU tool for huge sequences alignment[0m
+[0m
+Linked with MASA - Malleable Architecture for Sequence Aligners - 1.3.9.1024
+University of Brasilia/UnB - Brazil 
+Copyright (c) 2010-2015 Edans Sandes - License GPLv3
+This program comes with ABSOLUTELY NO WARRANTY.
+
+TRIM: 1..5227293 (5227293)
+TRIM: 1..5228663 (5228663)
+split[0]: 11.10%
+split[1]: 11.10%
+split[2]: 11.13%
+split[3]: 11.10%
+split[4]: 11.10%
+split[5]: 11.13%
+split[6]: 11.10%
+split[7]: 11.10%
+split[8]: 11.13%
+TRIM: 1160764..1742887 (582124)
+SW PARAM: 1/-3/-3/-2
+--Alignment sequences:
+>AE016879.1 (5227293)
+>AE017225.1 (582124)
+../dirs_MASA/work3/crosspoints
+../dirs_MASA/work3/special_rows
+file://../dirs_MASA/share/out3.bin:   file - ../dirs_MASA/share/out3.bin
+socket://192.168.0.89:4002:   socket - 192.168.0.89:4002
+Listening on 192.168.0.89 4002
+ERROR connecting to Server 192.168.0.89:4002 [Retry 0/1500]. Connection refused
+Connected to Server 192.168.0.89
+(0h00m00s) best:(-1,-1,-999999999) PROGRESS:    0/10722  cut:0/512 (0/0 -nan% -nan%)
+(0h00m00s) best:(136209,1280442,23) PROGRESS:  427/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m02s) best:(231833,1485680,68) PROGRESS: 1408/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m04s) best:(1185280,1185348,1184009) PROGRESS: 2337/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m06s) best:(1507840,1507914,1506423) PROGRESS: 3251/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m09s) best:(1742819,1742887,1741322) PROGRESS: 4160/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m11s) best:(1742819,1742887,1741322) PROGRESS: 5072/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m13s) best:(1742819,1742887,1741322) PROGRESS: 5988/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m15s) best:(1742819,1742887,1741322) PROGRESS: 6897/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m17s) best:(1742819,1742887,1741322) PROGRESS: 7806/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m19s) best:(1742819,1742887,1741322) PROGRESS: 8719/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m22s) best:(1742819,1742887,1741322) PROGRESS: 9633/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m24s) best:(1742819,1742887,1741322) PROGRESS: 10722/10722  cut:0/512 (0/0 0.0% 0.0%)
+[23011] Waiting Signal for msg: ../dirs_MASA/share/stage1.0011B63B
+START
+0,1742819,1742887,1741322
+END
+
+ ### Balancer: socket accepting connections on port: 5200 
+
+ ### Balancer 0: connection accepted! 
+
+
+ *** Balancer 0: command received: EXEC|./cudalign --blocks=512 --clear --no-flush --stage-1 --shared-dir=../dirs_MASA/share --work-dir=../dirs_MASA/work3 --dynamic=3 --no-block-pruning --split=333,333,334,333,333,334,333,333,334 --load-column=socket://192.168.0.89:4002 --flush-column=file://../dirs_MASA/share/out3.bin --gpu=0 --part=3 ../sequences/2-5M/AE016879.1.fasta ../sequences/2-5M/AE017225.1.fasta &
+
+
+ *** Balancer 0: waiting for READ control file... 
+
+
+ *** Balancer: READ control file identified. 
+ *** Balancer: Sent message READ to controller 
+
+
+ *** Balancer 0: waiting for END control file... 
+
+
+ *** Balancer: END control file identified. 
+ *** Balancer: Sent message END  to controller 
+>>>>> Deleting firstColumn: 0x62e64203d820
+SocketCellsReader::close(): 38
+Buffer2::destroy()...
+Buffer2::destroy() DONE
+recv: Socket error -1
+Destruct Buffer...
+>>>>> Deleting lastColumn: 0x62e64203cba0
+Buffer2::destroy()...
+readBuffer: diff len: 0 1
+Buffer2::destroy() DONE
+Destruct Buffer...
+1160763: 1160763,1742887
+Empty!!
+ Job::getSpecialRowsArea(1, 0, -1) -> -1/0
+---134150000,134150000   1 x 1
+
+
+ +++ CUDAlign: READ file written. 
+Sending finished message to the previous GPU
+SCR: Trying 1 
+BufferedCellsWriter::close()
+Work Path: ../dirs_MASA/work6
+
+[1mMASA-CUDAlign 3.9.1.1024  -  GPU tool for huge sequences alignment[0m
+[0m
+Linked with MASA - Malleable Architecture for Sequence Aligners - 1.3.9.1024
+University of Brasilia/UnB - Brazil 
+Copyright (c) 2010-2015 Edans Sandes - License GPLv3
+This program comes with ABSOLUTELY NO WARRANTY.
+
+TRIM: 1..5227293 (5227293)
+TRIM: 1..5228663 (5228663)
+split[0]: 11.10%
+split[1]: 11.10%
+split[2]: 11.13%
+split[3]: 11.10%
+split[4]: 11.10%
+split[5]: 11.13%
+split[6]: 11.10%
+split[7]: 11.10%
+split[8]: 11.13%
+TRIM: 2903651..3485775 (582125)
+SW PARAM: 1/-3/-3/-2
+--Alignment sequences:
+>AE016879.1 (5227293)
+>AE017225.1 (582125)
+../dirs_MASA/work6/crosspoints
+../dirs_MASA/work6/special_rows
+file://../dirs_MASA/share/out6.bin:   file - ../dirs_MASA/share/out6.bin
+socket://192.168.0.89:4002:   socket - 192.168.0.89:4002
+Listening on 192.168.0.89 4002
+ERROR connecting to Server 192.168.0.89:4002 [Retry 0/1500]. Connection refused
+Connected to Server 192.168.0.89
+(0h00m00s) best:(-1,-1,-999999999) PROGRESS:    0/10722  cut:0/512 (0/0 -nan% -nan%)
+(0h00m00s) best:(41538,3190670,21) PROGRESS:  387/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m02s) best:(203735,2969601,91) PROGRESS: 1333/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m04s) best:(203735,2969601,91) PROGRESS: 2233/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m06s) best:(203735,2969601,91) PROGRESS: 3151/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m08s) best:(2081276,2903651,434876) PROGRESS: 4065/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m11s) best:(2549244,2903651,1838403) PROGRESS: 4979/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m13s) best:(2981888,2982579,2978387) PROGRESS: 5894/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m15s) best:(3305457,3306151,3301904) PROGRESS: 6810/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m17s) best:(3485072,3485775,3481460) PROGRESS: 7848/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m20s) best:(3485072,3485775,3481460) PROGRESS: 8762/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m22s) best:(3485072,3485775,3481460) PROGRESS: 9680/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m24s) best:(3485072,3485775,3481460) PROGRESS: 10722/10722  cut:0/512 (0/0 0.0% 0.0%)
+[23038] Waiting Signal for msg: ../dirs_MASA/share/stage1.002C4E62
+START
+0,3485072,3485775,3481460
+END
+
+
+ *** Balancer 0: command received: EXEC|./cudalign --blocks=512 --clear --no-flush --stage-1 --shared-dir=../dirs_MASA/share --work-dir=../dirs_MASA/work6 --dynamic=3 --no-block-pruning --split=333,333,334,333,333,334,333,333,334 --load-column=socket://192.168.0.89:4002 --flush-column=file://../dirs_MASA/share/out6.bin --gpu=0 --part=6 ../sequences/2-5M/AE016879.1.fasta ../sequences/2-5M/AE017225.1.fasta &
+
+
+ *** Balancer 0: waiting for READ control file... 
+
+
+ *** Balancer: READ control file identified. 
+ *** Balancer: Sent message READ to controller 
+
+
+ *** Balancer 0: waiting for END control file... 
+
+
+ *** Balancer: END control file identified. 
+ *** Balancer: Sent message END  to controller 
+>>>>> Deleting firstColumn: 0x5d29272a05b0
+SocketCellsReader::close(): 39
+Buffer2::destroy()...
+Buffer2::destroy() DONE
+recv: Socket error -1
+Destruct Buffer...
+>>>>> Deleting lastColumn: 0x5d292729f930
+Buffer2::destroy()...
+readBuffer: diff len: 0 1
+Buffer2::destroy() DONE
+Destruct Buffer...
+2903650: 2903650,3485775
+Empty!!
+ Job::getSpecialRowsArea(1, 0, -1) -> -1/0
+---134150000,134150000   1 x 1
+
+
+ +++ CUDAlign: READ file written. 
+Sending finished message to the previous GPU
+SCR: Trying 1 
+BufferedCellsWriter::close()
+Work Path: ../dirs_MASA/work9
+
+[1mMASA-CUDAlign 3.9.1.1024  -  GPU tool for huge sequences alignment[0m
+[0m
+Linked with MASA - Malleable Architecture for Sequence Aligners - 1.3.9.1024
+University of Brasilia/UnB - Brazil 
+Copyright (c) 2010-2015 Edans Sandes - License GPLv3
+This program comes with ABSOLUTELY NO WARRANTY.
+
+TRIM: 1..5227293 (5227293)
+TRIM: 1..5228663 (5228663)
+split[0]: 11.10%
+split[1]: 11.10%
+split[2]: 11.13%
+split[3]: 11.10%
+split[4]: 11.10%
+split[5]: 11.13%
+split[6]: 11.10%
+split[7]: 11.10%
+split[8]: 11.13%
+TRIM: 4646539..5228663 (582125)
+SW PARAM: 1/-3/-3/-2
+--Alignment sequences:
+>AE016879.1 (5227293)
+>AE017225.1 (582125)
+../dirs_MASA/work9/crosspoints
+../dirs_MASA/work9/special_rows
+socket://192.168.0.89:4002:   socket - 192.168.0.89:4002
+Listening on 192.168.0.89 4002
+ERROR connecting to Server 192.168.0.89:4002 [Retry 0/1500]. Connection refused
+Connected to Server 192.168.0.89
+(0h00m00s) best:(-1,-1,-999999999) PROGRESS:    0/10722  cut:0/512 (0/0 -nan% -nan%)
+(0h00m00s) best:(142946,4707045,19) PROGRESS:  393/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m02s) best:(203741,5023727,96) PROGRESS: 1302/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m04s) best:(203741,5023727,96) PROGRESS: 2181/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m06s) best:(203741,5023727,96) PROGRESS: 3062/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m08s) best:(1810319,4650504,258) PROGRESS: 3942/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m10s) best:(1810319,4650504,258) PROGRESS: 4840/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m12s) best:(1810319,4650504,258) PROGRESS: 5757/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m15s) best:(3414524,4646539,948303) PROGRESS: 6669/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m17s) best:(3988476,4646539,2669005) PROGRESS: 7790/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m19s) best:(4459004,4646539,4080489) PROGRESS: 8709/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m22s) best:(4839424,4840760,4833245) PROGRESS: 9623/10722  cut:0/512 (0/0 0.0% 0.0%)
+(0h00m24s) best:(5227292,5228663,5220960) PROGRESS: 10722/10722  cut:0/512 (0/0 0.0% 0.0%)
+[23058] Waiting Signal for msg: ../dirs_MASA/share/stage1.0046E68A
+START
+0,5227292,5228663,5220960
+END
+
+
+ *** Balancer 0: command received: EXEC|./cudalign --blocks=512 --clear --no-flush --stage-1 --shared-dir=../dirs_MASA/share --work-dir=../dirs_MASA/work9 --dynamic=3 --no-block-pruning --split=333,333,334,333,333,334,333,333,334 --load-column=socket://192.168.0.89:4002 --gpu=0 --part=9 ../sequences/2-5M/AE016879.1.fasta ../sequences/2-5M/AE017225.1.fasta &
+
+
+ *** Balancer 0: waiting for READ control file... 
+
+
+ *** Balancer: READ control file identified. 
+ *** Balancer: Sent message READ to controller 
+
+
+ *** Balancer 0: waiting for END control file... 
+
+
+ *** Balancer: END control file identified. 
+ *** Balancer: Sent message END  to controller 
+>>>>> Deleting firstColumn: 0x60732e9b98b0
+SocketCellsReader::close(): 37
+Buffer2::destroy()...
+Buffer2::destroy() DONE
+
+
+ *** Balancer 0: command received: END|
+recv: Socket error -1
+Destruct Buffer...
+4646538: 4646538,-1
+Empty!!
+ Job::getSpecialRowsArea(1, 0, -1) -> -1/0
+---134150000,134150000   1 x 1
+
+
+ +++ CUDAlign: READ file written. 
+Sending finished message to the previous GPU
+SCR: Trying 1 

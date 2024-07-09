@@ -4,8 +4,8 @@ IP 192.168.0.88,192.168.0.89,192.168.0.158
 PORT 4001,4002,4003
 GPU# 0,0,0
 BP 0
-SPLIT 30,30,30
-SEQ  ../sequences/2-5M/AE016879.1.fasta,../sequences/2-5M/AE017225.1.fasta
+SPLIT 344,267,389
+SEQ  ../sequences/4-10M/NC_014318.1.fasta,../sequences/4-10M/NC_017186.1.fasta
 WAIT 0
 MODEL dynamic
 PROG ./dynamic

@@ -80,8 +80,7 @@ void AbstractDiagonalAligner::alignPartition(Partition partition) {
 		processNextIteration();
 	}
 	finalizeIterations();
-         if (dynamic != 0)
-		 /*
+         /*if (dynamic != 0)
           if ((splitstep%dynamic == 0) && (lastit)) {
             string filename = wdir + "/dynend.txt";
             dbdyn = fopen(filename.c_str(),"wt");
