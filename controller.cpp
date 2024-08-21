@@ -234,8 +234,8 @@ void update_split (int vgpu) {
         else {
             splitnew[j] = split_fail;
         }
+        if(k==config.gpus) {k=0;}
         k++; //k keeps track of the amount of splits that must be +1 in order for the remainder to be equally distributed.
-        if(k==config.gpus) {k=1;}
     }
 }
 
@@ -470,7 +470,7 @@ void restartbalancers(char workdir[]) {
     * After a failure, all balancers are killed and then restarted so the execution returns
     * from the last complete breakpoint and finishes automatically.
     */
-    char balancers_command[300]="", str_number[20], ignoreip[15] = "192.168.0.158";
+    char balancers_command[300]="", str_number[20], ignoreip[15] = "192.168.0.89";
     char path[100]="Documentos/Filipe/FT-dynBP";
     int i;
 
@@ -498,10 +498,10 @@ void restartbalancers(char workdir[]) {
             strcat(balancers_command, workdir);
             strcat(balancers_command, "; bash\"");
         }
-        //if(strcmp(config.ips[i], ignoreip)) {
+        if(strcmp(config.ips[i], ignoreip)) {
             system(balancers_command);
             //printf("@F: Balancers command: %s\n", balancers_command);
-        //}
+        }
         strcpy(balancers_command, "");
     }
 }

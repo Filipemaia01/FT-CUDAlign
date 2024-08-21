@@ -5,7 +5,7 @@ PORT 4001,4002,4003
 GPU# 0,0,0
 BP 0
 SPLIT 344,267,389
-SEQ  ../sequences/4-10M/NC_014318.1.fasta,../sequences/4-10M/NC_017186.1.fasta
+SEQ  ../sequences/chr21/NC_000021.9.fasta,../sequences/chr21/NC_006488.4.fasta
 WAIT 0
 MODEL dynamic
 PROG ./dynamic
